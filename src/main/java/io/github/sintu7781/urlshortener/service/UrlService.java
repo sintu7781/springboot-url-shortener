@@ -6,4 +6,6 @@ import io.github.sintu7781.urlshortener.dto.response.UrlResponse;
 public interface UrlService {
 
     UrlResponse createShortUrl(CreateShortUrlRequest request);
+
+    String getOriginalUrl(String shortCode);
 }
