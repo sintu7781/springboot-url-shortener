@@ -17,7 +17,6 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-
 public class Url {
 
     @Id
@@ -32,6 +31,17 @@ public class Url {
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Long clickCount = 0L;
+
+    @Column
+    private LocalDateTime expiresAt;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean active = true;
 
     @PrePersist
     public void onCreate() {
