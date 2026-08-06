@@ -3,6 +3,7 @@ package io.github.sintu7781.urlshortener.service;
 import io.github.sintu7781.urlshortener.dto.request.CreateShortUrlRequest;
 import io.github.sintu7781.urlshortener.dto.response.UrlResponse;
 import io.github.sintu7781.urlshortener.entity.Url;
+import io.github.sintu7781.urlshortener.exception.UrlNotFoundException;
 import io.github.sintu7781.urlshortener.repository.UrlRepository;
 import io.github.sintu7781.urlshortener.util.Base62Generator;
 import lombok.RequiredArgsConstructor;
@@ -36,5 +37,15 @@ public class UrlServiceImpl implements UrlService{
                 .shortCode(saved.getShortCode())
                 .shortUrl("http://localhost:8080/" + saved.getShortCode())
                 .build();
+    }
+
+    @Override
+    public String getOriginalUrl(String shortCode) {
+
+        Url url = urlRepository.findByShortCode(shortCode)
+                .orElseThrow(() ->
+                        new UrlNotFoundException("Short URL not found"));
+
+        return url.getOriginalUrl();
     }
 }
