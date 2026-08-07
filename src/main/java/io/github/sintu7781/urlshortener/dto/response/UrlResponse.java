@@ -4,6 +4,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Builder
 @AllArgsConstructor
@@ -16,4 +18,12 @@ public class UrlResponse {
     private String shortCode;
 
     private String shortUrl;
+
+    private Long clickCount;
+
+    private LocalDateTime createdAt;
+
+    private LocalDateTime expiresAt;
+
+    private boolean active;
 }
