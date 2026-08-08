@@ -19,8 +19,18 @@ import java.time.LocalDateTime;
 @Builder
 public class Url {
 
+//    @Id
+//    private Long id;
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(
+            strategy = GenerationType.SEQUENCE,
+            generator = "url_seq_generator"
+    )
+    @SequenceGenerator(
+            name = "url_seq_generator",
+            sequenceName = "url_id_seq",
+            allocationSize = 1
+    )
     private Long id;
 
     @Column(nullable = false, length = 2048)
