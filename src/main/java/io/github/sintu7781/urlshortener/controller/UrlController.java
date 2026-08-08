@@ -1,12 +1,16 @@
 package io.github.sintu7781.urlshortener.controller;
 
+import io.github.sintu7781.urlshortener.common.response.ApiResponse;
 import io.github.sintu7781.urlshortener.dto.request.CreateShortUrlRequest;
 import io.github.sintu7781.urlshortener.dto.response.UrlResponse;
-import io.github.sintu7781.urlshortener.service.UrlService;
+import io.github.sintu7781.urlshortener.service.impl.UrlService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.Instant;
 
 @RestController
 @RequestMapping("/api/v1/urls")
@@ -16,10 +20,17 @@ public class UrlController {
     private final UrlService urlService;
 
     @PostMapping
-    @ResponseStatus(HttpStatus.CREATED)
-    public UrlResponse createShortUrl(
+    public ResponseEntity<ApiResponse<UrlResponse>> createShortUrl(
             @Valid @RequestBody CreateShortUrlRequest request
             ) {
-        return urlService.createShortUrl(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(
+                        ApiResponse.<UrlResponse>builder()
+                                .success(true)
+                                .message("Short URL created successfully.")
+                                .data(urlService.createShortUrl(request))
+                                .timestamp(Instant.now())
+                                .build()
+                );
     }
 }
