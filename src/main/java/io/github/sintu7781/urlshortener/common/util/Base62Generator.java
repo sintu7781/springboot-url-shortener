@@ -1,13 +1,9 @@
-package io.github.sintu7781.urlshortener.util;
-
-import java.security.SecureRandom;
+package io.github.sintu7781.urlshortener.common.util;
 
 public final class Base62Generator {
 
     private static final String BASE62 =
             "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrst";
-
-    private static final SecureRandom RANDOM = new SecureRandom();
 
     private Base62Generator() {
     }
