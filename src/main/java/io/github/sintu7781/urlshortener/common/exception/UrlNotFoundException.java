@@ -1,4 +1,4 @@
-package io.github.sintu7781.urlshortener.exception;
+package io.github.sintu7781.urlshortener.common.exception;
 
 public class UrlNotFoundException extends RuntimeException {
 
