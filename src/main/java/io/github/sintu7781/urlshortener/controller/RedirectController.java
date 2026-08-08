@@ -1,6 +1,6 @@
 package io.github.sintu7781.urlshortener.controller;
 
-import io.github.sintu7781.urlshortener.service.UrlService;
+import io.github.sintu7781.urlshortener.service.impl.UrlService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
