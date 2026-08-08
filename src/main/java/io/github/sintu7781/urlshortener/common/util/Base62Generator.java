@@ -3,7 +3,7 @@ package io.github.sintu7781.urlshortener.common.util;
 public final class Base62Generator {
 
     private static final String BASE62 =
-            "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrst";
+            "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
 
     private Base62Generator() {
     }
