@@ -110,6 +110,8 @@ public class UrlServiceImpl implements UrlService {
 
         long id = urlRepository.getNextId();
 //        long id = idGenerator.nextId();
+        System.out.println("Generated ID = " + id);
+        System.out.println("Custom Alias = " + request.getCustomAlias());
 
         String shortCode;
 
@@ -126,7 +128,10 @@ public class UrlServiceImpl implements UrlService {
             shortCode = request.getCustomAlias();
 
         } else {
+            System.out.println("Generating Base62 for ID = " + id);
             shortCode = Base62Generator.encode(id);
+            System.out.println("Generated shortCode = " + shortCode);
+
         }
 
         Url url = Url.builder()
@@ -167,14 +172,10 @@ public class UrlServiceImpl implements UrlService {
         }
 
         if(url.getExpiresAt() != null &&
-            url.getExpiresAt().isAfter(LocalDateTime.now())) {
+            !url.getExpiresAt().isAfter(LocalDateTime.now())) {
 
             throw new UrlExpiredException();
         }
-
-        url.setClickCount(url.getClickCount() + 1);
-
-        urlRepository.save(url);
 
         cacheUrl(url);
 
