@@ -32,6 +32,20 @@ public class ClickCounterService {
         return Long.parseLong(value);
     }
 
+    public Long getAndReset(String shortCode) {
+
+        String key = buildKey(shortCode);
+
+        String value = redisTemplate.opsForValue()
+                .getAndDelete(key);
+
+        if(value == null) {
+            return 0L;
+        }
+
+        return Long.parseLong(value);
+    }
+
     public void delete(String shortCode) {
 
         redisTemplate.delete(buildKey(shortCode));
