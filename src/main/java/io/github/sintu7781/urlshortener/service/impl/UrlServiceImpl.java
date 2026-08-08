@@ -6,9 +6,11 @@ import io.github.sintu7781.urlshortener.entity.Url;
 import io.github.sintu7781.urlshortener.exception.UrlExpiredException;
 import io.github.sintu7781.urlshortener.exception.UrlNotFoundException;
 import io.github.sintu7781.urlshortener.repository.UrlRepository;
+//import io.github.sintu7781.urlshortener.service.id.IdGenerator;
 import io.github.sintu7781.urlshortener.util.Base62Generator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -17,7 +19,9 @@ import java.time.LocalDateTime;
 public class UrlServiceImpl implements UrlService{
 
     private final UrlRepository urlRepository;
+//    private final IdGenerator idGenerator;
 
+    @Transactional
     @Override
     public UrlResponse createShortUrl(CreateShortUrlRequest request) {
 
@@ -42,25 +46,25 @@ public class UrlServiceImpl implements UrlService{
             );
         }
 
-        String shortCode;
+        long id = urlRepository.getNextId();
+//        long id = idGenerator.nextId();
 
-        do {
-            shortCode = Base62Generator.generate(6);
-        } while (urlRepository.existsByShortCode(shortCode));
+        String shortCode = Base62Generator.encode(id);
 
         Url url = Url.builder()
+                .id(id)
                 .originalUrl(request.getUrl())
                 .shortCode(shortCode)
                 .expiresAt(request.getExpiresAt())
                 .build();
 
-        Url saved = urlRepository.save(url);
+        urlRepository.save(url);
 
         return UrlResponse.builder()
-                .id(saved.getId())
-                .originalUrl(saved.getOriginalUrl())
-                .shortCode(saved.getShortCode())
-                .shortUrl("http://localhost:8080/" + saved.getShortCode())
+                .id(url.getId())
+                .originalUrl(url.getOriginalUrl())
+                .shortCode(shortCode)
+                .shortUrl("http://localhost:8080/" + shortCode)
                 .build();
     }
 
