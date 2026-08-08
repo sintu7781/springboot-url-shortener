@@ -36,7 +36,7 @@ public class Url {
     @Column(nullable = false, length = 2048)
     private String originalUrl;
 
-    @Column(nullable = false, unique = true, length = 10)
+    @Column(nullable = false, unique = true, length = 30)
     private String shortCode;
 
     @Column(nullable = false, updatable = false)
