@@ -3,10 +3,13 @@ package io.github.sintu7781.urlshortener.common.exception;
 import io.github.sintu7781.urlshortener.common.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
+import java.util.Objects;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
@@ -16,16 +19,10 @@ public class GlobalExceptionHandler {
             UrlNotFoundException ex
     ) {
 
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(
-                        ErrorResponse.builder()
-                                .status(HttpStatus.NOT_FOUND.value())
-                                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
-                                .message(ex.getMessage())
-                                .timestamp(Instant.now())
-                                .build()
-
-                );
+        return buildError(
+                HttpStatus.NOT_FOUND,
+                ex.getMessage()
+        );
     }
 
     @ExceptionHandler(UrlExpiredException.class)
@@ -33,15 +30,10 @@ public class GlobalExceptionHandler {
             UrlExpiredException ex
     ) {
 
-        return ResponseEntity.status(HttpStatus.GONE)
-                .body(
-                        ErrorResponse.builder()
-                                .status(HttpStatus.GONE.value())
-                                .error(HttpStatus.GONE.getReasonPhrase())
-                                .message(ex.getMessage())
-                                .timestamp(Instant.now())
-                                .build()
-                );
+        return buildError(
+                HttpStatus.GONE,
+                ex.getMessage()
+        );
     }
 
     @ExceptionHandler(InvalidUrlException.class)
@@ -49,30 +41,78 @@ public class GlobalExceptionHandler {
             InvalidUrlException ex
     ) {
 
-        return ResponseEntity.badRequest()
-                .body(
-                        ErrorResponse.builder()
-                                .status(HttpStatus.BAD_REQUEST.value())
-                                .error(HttpStatus.BAD_REQUEST.getReasonPhrase())
-                                .message(ex.getMessage())
-                                .timestamp(Instant.now())
-                                .build()
-                );
+        return buildError(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(InvalidExpirationException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidExpiration(
+            InvalidExpirationException ex
+    ) {
+
+        return buildError(
+                HttpStatus.BAD_REQUEST,
+                ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(ShortCodeAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleShortCodeAlreadyExists(
+            ShortCodeAlreadyExistsException ex
+    ) {
+
+        return buildError(
+                HttpStatus.CONFLICT,
+                ex.getMessage()
+        );
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidateErrors(
+            MethodArgumentNotValidException ex
+    ) {
+
+        String message = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(FieldError::getDefaultMessage)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .orElse("Validate failed.");
+
+        return buildError(
+                HttpStatus.BAD_REQUEST,
+                message
+        );
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleException(
-            Exception ex
+            Exception ignored
     ) {
 
-        return ResponseEntity.internalServerError()
-                .body(
-                        ErrorResponse.builder()
-                                .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
-                                .error(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase())
-                                .message(ex.getMessage())
-                                .timestamp(Instant.now())
-                                .build()
-                );
+        return buildError(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                "An unexpected error occurred."
+        );
+    }
+
+    private ResponseEntity<ErrorResponse> buildError(
+            HttpStatus status,
+            String message
+    ) {
+
+        ErrorResponse response = ErrorResponse.builder()
+                .status(status.value())
+                .error(status.getReasonPhrase())
+                .message(message)
+                .timestamp(Instant.now())
+                .build();
+
+        return ResponseEntity
+                .status(status)
+                .body(response);
     }
 }
