@@ -1,11 +1,9 @@
 package io.github.sintu7781.urlshortener.service.impl;
 
-import io.github.sintu7781.urlshortener.common.exception.InvalidUrlException;
+import io.github.sintu7781.urlshortener.common.exception.*;
 import io.github.sintu7781.urlshortener.dto.request.CreateShortUrlRequest;
 import io.github.sintu7781.urlshortener.dto.response.UrlResponse;
 import io.github.sintu7781.urlshortener.entity.Url;
-import io.github.sintu7781.urlshortener.common.exception.UrlExpiredException;
-import io.github.sintu7781.urlshortener.common.exception.UrlNotFoundException;
 import io.github.sintu7781.urlshortener.mapper.UrlMapper;
 import io.github.sintu7781.urlshortener.repository.UrlRepository;
 //import io.github.sintu7781.urlshortener.service.id.IdGenerator;
@@ -49,31 +47,53 @@ public class UrlServiceImpl implements UrlService {
         }
     }
 
+    private void validateExpiration(LocalDateTime expiresAt) {
+
+        if(expiresAt != null &&
+                !expiresAt.isAfter(LocalDateTime.now())) {
+
+            throw new InvalidExpirationException(
+                    "Expiration time must be in the future."
+            );
+        }
+    }
+
     @Transactional
     @Override
     public UrlResponse createShortUrl(CreateShortUrlRequest request) {
 
         validateUrl(request.getUrl());
 
-        Url existing = urlRepository.findByOriginalUrl(request.getUrl())
+        validateExpiration(request.getExpiresAt());
+
+        Url existing = urlRepository
+                .findByOriginalUrl(request.getUrl())
                 .orElse(null);
 
         if(existing != null) {
             return mapper.toResponse(existing);
         }
 
-        if(request.getExpiresAt() != null &&
-        request.getExpiresAt().isBefore(LocalDateTime.now())) {
-
-            throw new IllegalArgumentException(
-                    "Expiration time must be in the future."
-            );
-        }
-
         long id = urlRepository.getNextId();
 //        long id = idGenerator.nextId();
 
-        String shortCode = Base62Generator.encode(id);
+        String shortCode;
+
+        if(request.getCustomAlias() != null &&
+                !request.getCustomAlias().isBlank()) {
+
+            if(urlRepository.existsByShortCode(request.getCustomAlias())) {
+
+                throw new ShortCodeAlreadyExistsException(
+                        "Custom alias is already in use."
+                );
+            }
+
+            shortCode = request.getCustomAlias();
+
+        } else {
+            shortCode = Base62Generator.encode(id);
+        }
 
         Url url = Url.builder()
                 .id(id)
@@ -82,9 +102,9 @@ public class UrlServiceImpl implements UrlService {
                 .expiresAt(request.getExpiresAt())
                 .build();
 
-        urlRepository.save(url);
+        Url savedUrl = urlRepository.save(url);
 
-        return mapper.toResponse(url);
+        return mapper.toResponse(savedUrl);
     }
 
     @Override
@@ -99,7 +119,7 @@ public class UrlServiceImpl implements UrlService {
         }
 
         if(url.getExpiresAt() != null &&
-        url.getExpiresAt().isBefore(LocalDateTime.now())) {
+            url.getExpiresAt().isBefore(LocalDateTime.now())) {
 
             throw new UrlExpiredException();
         }
