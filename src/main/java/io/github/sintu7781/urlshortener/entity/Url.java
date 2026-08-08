@@ -9,7 +9,11 @@ import java.time.LocalDateTime;
 @Table(
         name = "urls",
         indexes = {
-                @Index(name = "idx_short_code", columnList = "shortCode", unique = true)
+                @Index(
+                        name = "idx_short_code",
+                        columnList = "shortCode",
+                        unique = true
+                )
         }
 )
 @Getter
@@ -19,18 +23,7 @@ import java.time.LocalDateTime;
 @Builder
 public class Url {
 
-//    @Id
-//    private Long id;
     @Id
-    @GeneratedValue(
-            strategy = GenerationType.SEQUENCE,
-            generator = "url_seq_generator"
-    )
-    @SequenceGenerator(
-            name = "url_seq_generator",
-            sequenceName = "url_id_seq",
-            allocationSize = 1
-    )
     private Long id;
 
     @Column(nullable = false, length = 2048)
