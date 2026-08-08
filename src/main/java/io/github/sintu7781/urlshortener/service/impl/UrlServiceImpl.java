@@ -8,6 +8,7 @@ import io.github.sintu7781.urlshortener.mapper.UrlMapper;
 import io.github.sintu7781.urlshortener.repository.UrlRepository;
 //import io.github.sintu7781.urlshortener.service.id.IdGenerator;
 import io.github.sintu7781.urlshortener.common.util.Base62Generator;
+import io.github.sintu7781.urlshortener.service.analytics.ClickCounterService;
 import io.github.sintu7781.urlshortener.service.cache.UrlCacheService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,8 @@ public class UrlServiceImpl implements UrlService {
     private final UrlMapper mapper;
 
     private final UrlCacheService urlCacheService;
+
+    private final ClickCounterService clickCounterService;
 
     private void validateUrl(String url) {
 
@@ -155,6 +158,9 @@ public class UrlServiceImpl implements UrlService {
         String cachedUrl = urlCacheService.get(shortCode);
 
         if(cachedUrl != null) {
+
+            clickCounterService.increment(shortCode);
+
             return cachedUrl;
         }
 
@@ -178,6 +184,8 @@ public class UrlServiceImpl implements UrlService {
         }
 
         cacheUrl(url);
+
+        clickCounterService.increment(shortCode);
 
         return url.getOriginalUrl();
     }
