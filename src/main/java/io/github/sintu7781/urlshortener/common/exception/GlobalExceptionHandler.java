@@ -1,4 +1,4 @@
-package io.github.sintu7781.urlshortener.exception;
+package io.github.sintu7781.urlshortener.common.exception;
 
 import io.github.sintu7781.urlshortener.common.response.ErrorResponse;
 import org.springframework.http.HttpStatus;
