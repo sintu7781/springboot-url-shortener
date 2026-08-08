@@ -8,11 +8,13 @@ import io.github.sintu7781.urlshortener.mapper.UrlMapper;
 import io.github.sintu7781.urlshortener.repository.UrlRepository;
 //import io.github.sintu7781.urlshortener.service.id.IdGenerator;
 import io.github.sintu7781.urlshortener.common.util.Base62Generator;
+import io.github.sintu7781.urlshortener.service.cache.UrlCacheService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Service
@@ -20,8 +22,12 @@ import java.time.LocalDateTime;
 public class UrlServiceImpl implements UrlService {
 
     private final UrlRepository urlRepository;
+
 //    private final IdGenerator idGenerator;
+
     private final UrlMapper mapper;
+
+    private final UrlCacheService urlCacheService;
 
     private void validateUrl(String url) {
 
@@ -54,6 +60,34 @@ public class UrlServiceImpl implements UrlService {
 
             throw new InvalidExpirationException(
                     "Expiration time must be in the future."
+            );
+        }
+    }
+
+    private void cacheUrl(Url url) {
+
+        if(url.getExpiresAt() == null) {
+
+            urlCacheService.put(
+                    url.getShortCode(),
+                    url.getOriginalUrl(),
+                    null
+            );
+
+            return;
+        }
+
+        Duration ttl = Duration.between(
+                LocalDateTime.now(),
+                url.getExpiresAt()
+        );
+
+        if(!ttl.isNegative() && !ttl.isZero()) {
+
+            urlCacheService.put(
+                    url.getShortCode(),
+                    url.getOriginalUrl(),
+                    ttl
             );
         }
     }
@@ -104,22 +138,36 @@ public class UrlServiceImpl implements UrlService {
 
         Url savedUrl = urlRepository.save(url);
 
+        cacheUrl(savedUrl);
+
         return mapper.toResponse(savedUrl);
     }
 
     @Override
+    @Transactional
     public String getOriginalUrl(String shortCode) {
+
+        String cachedUrl = urlCacheService.get(shortCode);
+
+        if(cachedUrl != null) {
+            return cachedUrl;
+        }
 
         Url url = urlRepository.findByShortCode(shortCode)
                 .orElseThrow(() ->
-                        new UrlNotFoundException("Short URL not found"));
+                        new UrlNotFoundException(
+                                "Short URL not found"
+                        )
+                );
 
         if(!url.isActive()) {
-            throw new UrlNotFoundException("Short URL is inactive");
+            throw new UrlNotFoundException(
+                    "Short URL is inactive"
+            );
         }
 
         if(url.getExpiresAt() != null &&
-            url.getExpiresAt().isBefore(LocalDateTime.now())) {
+            url.getExpiresAt().isAfter(LocalDateTime.now())) {
 
             throw new UrlExpiredException();
         }
@@ -127,6 +175,8 @@ public class UrlServiceImpl implements UrlService {
         url.setClickCount(url.getClickCount() + 1);
 
         urlRepository.save(url);
+
+        cacheUrl(url);
 
         return url.getOriginalUrl();
     }
