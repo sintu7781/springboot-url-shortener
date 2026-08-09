@@ -15,15 +15,20 @@ public class ClickCountSyncService {
     private final ClickCounterService clickCounterService;
 
     @Transactional
-    public void sync(String shortCode) {
+    public void sync(
+            String shortCode,
+            String rotatedKey
+    ) {
 
-        Long clicks = clickCounterService.getAndReset(shortCode);
+        Long clicks =
+                clickCounterService.getAndDelete(rotatedKey);
 
         if(clicks == 0) {
             return;
         }
 
-        Url url = urlRepository.findByShortCode(shortCode)
+        Url url = urlRepository
+                .findByShortCode(shortCode)
                 .orElse(null);
 
         if(url == null) {
