@@ -1,41 +1,61 @@
 package io.github.sintu7781.urlshortener.scheduler;
 
 import io.github.sintu7781.urlshortener.service.analytics.ClickCountSyncService;
+import io.github.sintu7781.urlshortener.service.analytics.ClickCounterService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-
-import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public class ClickCountSyncScheduler {
 
-    private static final String CLICK_KEY_PREFIX = "clicks:";
+    private static final String CLICK_KEY_PATTERN = "clicks:*";
 
     private final StringRedisTemplate redisTemplate;
+
+    private final ClickCounterService clickCounterService;
 
     private final ClickCountSyncService clickCountSyncService;
 
     @Scheduled(fixedDelay = 60_000)
     public void syncClickCounts() {
 
-        Set<String> keys = redisTemplate.keys(
-                CLICK_KEY_PREFIX + "*"
-        );
+        ScanOptions options = ScanOptions.scanOptions()
+                .match(CLICK_KEY_PATTERN)
+                .count(100)
+                .build();
 
-        if(keys == null || keys.isEmpty()) {
-            return;
-        }
+        try (Cursor<String> cursor =
+                redisTemplate.scan(options)) {
 
-        for(String key : keys) {
+            while (cursor.hasNext()) {
 
-            String shortCode = key.substring(
-                    CLICK_KEY_PREFIX.length()
-            );
+                String key = cursor.next();
 
-            clickCountSyncService.sync(shortCode);
+                if(key.contains(":sync:")) {
+                    continue;
+                }
+
+                String shortCode = key.substring(
+                        "clicks:".length()
+                );
+
+                String rotatedKey =
+                        clickCounterService.rotate(shortCode);
+
+                if(rotatedKey == null) {
+                    continue;
+                }
+
+                clickCountSyncService.sync(
+                        shortCode,
+                        rotatedKey
+                );
+            }
         }
     }
 }
