@@ -3,6 +3,7 @@ package io.github.sintu7781.urlshortener.scheduler;
 import io.github.sintu7781.urlshortener.service.analytics.ClickCountSyncService;
 import io.github.sintu7781.urlshortener.service.analytics.ClickCounterService;
 import lombok.RequiredArgsConstructor;
+import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
@@ -22,6 +23,11 @@ public class ClickCountSyncScheduler {
     private final ClickCountSyncService clickCountSyncService;
 
     @Scheduled(fixedDelay = 60_000)
+    @SchedulerLock(
+            name = "clickCountSync",
+            lockAtMostFor = "5m",
+            lockAtLeastFor = "30s"
+    )
     public void syncClickCounts() {
 
         ScanOptions options = ScanOptions.scanOptions()
