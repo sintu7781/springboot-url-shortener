@@ -2,13 +2,30 @@ package io.github.sintu7781.urlshortener.service.analytics;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class ClickCounterService {
 
     private static final String KEY_PREFIX = "clicks:";
+
+    private static final String ROTATE_SCRIPT = """
+            local value = redis.call('GET', KEYS[1])
+            
+            if not value then
+                return nil
+            end
+            
+            local newKey = KEYS[1] .. ':sync:' .. ARGV[1]
+            
+            redis.call('RENAME', KEYS[1], newKeys)
+            
+            return newKey
+            """;
 
     private final StringRedisTemplate redisTemplate;
 
@@ -32,10 +49,25 @@ public class ClickCounterService {
         return Long.parseLong(value);
     }
 
-    public Long getAndReset(String shortCode) {
+    public String rotate(String shortCode) {
 
-        String key = buildKey(shortCode);
+        String currentKey = buildKey(shortCode);
 
+        String timestamp = String.valueOf(
+                System.currentTimeMillis()
+        );
+
+        return redisTemplate.execute(
+                new DefaultRedisScript<>(
+                        ROTATE_SCRIPT,
+                        String.class
+                ),
+                List.of(currentKey),
+                timestamp
+        );
+    }
+
+    public long getAndDelete(String key) {
         String value = redisTemplate.opsForValue()
                 .getAndDelete(key);
 
