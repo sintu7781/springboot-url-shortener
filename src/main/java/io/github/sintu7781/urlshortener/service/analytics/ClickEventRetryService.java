@@ -10,9 +10,6 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class ClickEventRetryService {
 
-    private static final String CLICK_EVENT_QUEUE =
-            "queue:click-events";
-
     private static final String RETRY_PREFIX =
             "click-event:retry:";
 
@@ -58,7 +55,7 @@ public class ClickEventRetryService {
 
             redisTemplate.opsForList()
                     .rightPush(
-                            CLICK_EVENT_QUEUE,
+                            ClickEventPublisher.CLICK_EVENT_GROUP,
                             eventJson
                     );
         } catch (Exception ex) {
