@@ -11,12 +11,6 @@ import tools.jackson.databind.ObjectMapper;
 @RequiredArgsConstructor
 public class ClickEventConsumer {
 
-    private static final String CLICK_EVENT_QUEUE =
-            "queue:click-events";
-
-    private static final String PROCESSING_QUEUE =
-            "processing:click-events";
-
     private final StringRedisTemplate redisTemplate;
 
     private final ObjectMapper objectMapper;
@@ -32,8 +26,8 @@ public class ClickEventConsumer {
 
             String eventJson = redisTemplate.opsForList()
                     .rightPopAndLeftPush(
-                            CLICK_EVENT_QUEUE,
-                            PROCESSING_QUEUE
+                            ClickEventPublisher.CLICK_EVENT_STREAM,
+                            ClickEventPublisher.CLICK_EVENT_GROUP
                     );
 
             if (eventJson == null) {
@@ -81,7 +75,7 @@ public class ClickEventConsumer {
 
         redisTemplate.opsForList()
                 .remove(
-                        PROCESSING_QUEUE,
+                        ClickEventPublisher.CLICK_EVENT_GROUP,
                         1,
                         eventJson
                 );
