@@ -4,6 +4,8 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(
@@ -11,7 +13,7 @@ import java.time.LocalDateTime;
         indexes = {
                 @Index(
                         name = "idx_short_code",
-                        columnList = "shortCode",
+                        columnList = "short_code",
                         unique = true
                 )
         }
@@ -26,25 +28,32 @@ public class Url {
     @Id
     private Long id;
 
-    @Column(nullable = false, length = 2048)
+    @Column(name = "original_url", nullable = false, length = 2048)
     private String originalUrl;
 
-    @Column(nullable = false, unique = true, length = 30)
+    @Column(name = "short_code", nullable = false, unique = true, length = 30)
     private String shortCode;
 
-    @Column(nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "click_count", nullable = false)
     @Builder.Default
-    @Column(nullable = false)
     private Long clickCount = 0L;
 
-    @Column
+    @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 
+    @Column(name = "active", nullable = false)
     @Builder.Default
-    @Column(nullable = false)
     private boolean active = true;
+
+    @OneToMany(
+            mappedBy = "url",
+            fetch = FetchType.LAZY
+    )
+    @Builder.Default
+    private List<UrlClick> clicks = new ArrayList<>();
 
     @PrePersist
     public void onCreate() {
