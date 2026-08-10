@@ -4,12 +4,14 @@ import io.github.sintu7781.urlshortener.common.response.ApiResponse;
 import io.github.sintu7781.urlshortener.dto.request.CreateShortUrlRequest;
 import io.github.sintu7781.urlshortener.dto.response.UrlResponse;
 import io.github.sintu7781.urlshortener.service.impl.UrlService;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URI;
 import java.time.Instant;
 
 @RestController
