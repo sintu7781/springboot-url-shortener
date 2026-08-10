@@ -14,6 +14,9 @@ public class ClickEventConsumer {
     private static final String CLICK_EVENT_QUEUE =
             "queue:click-events";
 
+    private static final String PROCESSING_QUEUE =
+            "processing:click-events";
+
     private final StringRedisTemplate redisTemplate;
 
     private final ObjectMapper objectMapper;
@@ -26,7 +29,10 @@ public class ClickEventConsumer {
         for (int i = 0; i < 100; i++) {
 
             String eventJson = redisTemplate.opsForList()
-                    .leftPop(CLICK_EVENT_QUEUE);
+                    .rightPopAndLeftPush(
+                            CLICK_EVENT_QUEUE,
+                            PROCESSING_QUEUE
+                    );
 
             if (eventJson == null) {
                 return;
@@ -48,6 +54,8 @@ public class ClickEventConsumer {
 
             clickEventProcessor.process(event);
 
+            removeProcessedEvent(eventJson);
+
         } catch (Exception ex) {
 
             System.err.println(
@@ -55,5 +63,21 @@ public class ClickEventConsumer {
                     + ex.getMessage()
             );
         }
+    }
+
+    public void retry(String eventJson) {
+
+        processEvent(eventJson);
+
+    }
+
+    private void removeProcessedEvent(String eventJson) {
+
+        redisTemplate.opsForList()
+                .remove(
+                        PROCESSING_QUEUE,
+                        1,
+                        eventJson
+                );
     }
 }
