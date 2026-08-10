@@ -21,6 +21,7 @@ import java.net.URI;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -122,6 +123,7 @@ public class UrlServiceImpl implements UrlService {
     ) {
 
         ClickEvent event = ClickEvent.builder()
+                .eventId(UUID.randomUUID().toString())
                 .shortCode(shortCode)
                 .ipAddress(getClientIp(request))
                 .userAgent(request.getHeader("User-Agent"))
