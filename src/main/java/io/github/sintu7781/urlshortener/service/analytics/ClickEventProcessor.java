@@ -20,6 +20,13 @@ public class ClickEventProcessor {
     @Transactional
     public void process(ClickEvent event) {
 
+        if(urlClickRepository.existsByEventId(
+                event.eventId()
+        )) {
+
+            return;
+        }
+
         Url url = urlRepository
                 .findByShortCode(event.shortCode())
                 .orElse(null);
@@ -29,6 +36,7 @@ public class ClickEventProcessor {
         }
 
         UrlClick click = UrlClick.builder()
+                .eventId(event.eventId())
                 .url(url)
                 .clickedAt(event.clickedAt())
                 .ipAddress(event.ipAddress())
