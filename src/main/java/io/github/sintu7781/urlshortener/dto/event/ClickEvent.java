@@ -6,6 +6,7 @@ import java.time.Instant;
 
 @Builder
 public record ClickEvent(
+        String eventId,
         String shortCode,
         String ipAddress,
         String userAgent,
