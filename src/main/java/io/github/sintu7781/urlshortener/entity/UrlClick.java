@@ -18,6 +18,12 @@ import java.time.Instant;
                         name = "idx_url_click_clicked_at",
                         columnList = "clicked_at"
                 )
+        },
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_url_clicks_event_id",
+                        columnNames = "event_id"
+                )
         }
 )
 @Getter
@@ -38,6 +44,14 @@ public class UrlClick {
     )
     private Long id;
 
+    @Column(
+            name = "event_id",
+            nullable = false,
+            unique = true,
+            length = 36
+    )
+    private String eventId;
+
     @ManyToOne(
             fetch = FetchType.LAZY,
             optional = false
@@ -48,15 +62,27 @@ public class UrlClick {
     )
     private Url url;
 
-    @Column(name = "clicked_at", nullable = false)
+    @Column(
+            name = "clicked_at",
+            nullable = false
+    )
     private Instant clickedAt;
 
-    @Column(name = "ip_address", length = 45)
+    @Column(
+            name = "ip_address",
+            length = 45
+    )
     private String ipAddress;
 
-    @Column(name = "user_agent", length = 1000)
+    @Column(
+            name = "user_agent",
+            length = 1000
+    )
     private String userAgent;
 
-    @Column(name = "referrer", length = 2000)
+    @Column(
+            name = "referrer",
+            length = 2000
+    )
     private String referrer;
 }
