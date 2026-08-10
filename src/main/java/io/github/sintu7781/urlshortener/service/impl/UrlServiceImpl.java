@@ -1,6 +1,7 @@
 package io.github.sintu7781.urlshortener.service.impl;
 
 import io.github.sintu7781.urlshortener.common.exception.*;
+import io.github.sintu7781.urlshortener.dto.event.ClickEvent;
 import io.github.sintu7781.urlshortener.dto.request.CreateShortUrlRequest;
 import io.github.sintu7781.urlshortener.dto.response.UrlResponse;
 import io.github.sintu7781.urlshortener.entity.Url;
@@ -9,13 +10,16 @@ import io.github.sintu7781.urlshortener.repository.UrlRepository;
 //import io.github.sintu7781.urlshortener.service.id.IdGenerator;
 import io.github.sintu7781.urlshortener.common.util.Base62Generator;
 import io.github.sintu7781.urlshortener.service.analytics.ClickCounterService;
+import io.github.sintu7781.urlshortener.service.analytics.ClickEventPublisher;
 import io.github.sintu7781.urlshortener.service.cache.UrlCacheService;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URI;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDateTime;
 
 @Service
@@ -31,6 +35,8 @@ public class UrlServiceImpl implements UrlService {
     private final UrlCacheService urlCacheService;
 
     private final ClickCounterService clickCounterService;
+
+    private final ClickEventPublisher clickEventPublisher;
 
     private void validateUrl(String url) {
 
@@ -95,6 +101,37 @@ public class UrlServiceImpl implements UrlService {
         }
     }
 
+    private String getClientIp(HttpServletRequest request) {
+
+        String forwardedFor =
+                request.getHeader("X-Forwarded-For");
+
+        if(forwardedFor != null &&
+            !forwardedFor.isBlank()) {
+
+            return forwardedFor.split(",")[0].trim();
+
+        }
+
+        return request.getRemoteAddr();
+    }
+
+    private void recordClick(
+            String shortCode,
+            HttpServletRequest request
+    ) {
+
+        ClickEvent event = ClickEvent.builder()
+                .shortCode(shortCode)
+                .ipAddress(getClientIp(request))
+                .userAgent(request.getHeader("User-Agent"))
+                .referrer(request.getHeader("Referrer"))
+                .clickedAt(Instant.now())
+                .build();
+
+        clickEventPublisher.publish(event);
+    }
+
     @Transactional
     @Override
     public UrlResponse createShortUrl(CreateShortUrlRequest request) {
@@ -113,8 +150,6 @@ public class UrlServiceImpl implements UrlService {
 
         long id = urlRepository.getNextId();
 //        long id = idGenerator.nextId();
-        System.out.println("Generated ID = " + id);
-        System.out.println("Custom Alias = " + request.getCustomAlias());
 
         String shortCode;
 
@@ -131,9 +166,8 @@ public class UrlServiceImpl implements UrlService {
             shortCode = request.getCustomAlias();
 
         } else {
-            System.out.println("Generating Base62 for ID = " + id);
+
             shortCode = Base62Generator.encode(id);
-            System.out.println("Generated shortCode = " + shortCode);
 
         }
 
@@ -151,13 +185,18 @@ public class UrlServiceImpl implements UrlService {
         return mapper.toResponse(savedUrl);
     }
 
-    @Override
     @Transactional
-    public String getOriginalUrl(String shortCode) {
+    @Override
+    public String getOriginalUrl(
+            String shortCode,
+            HttpServletRequest request
+    ) {
 
         String cachedUrl = urlCacheService.get(shortCode);
 
         if(cachedUrl != null) {
+
+            recordClick(shortCode, request);
 
             clickCounterService.increment(shortCode);
 
@@ -184,6 +223,8 @@ public class UrlServiceImpl implements UrlService {
         }
 
         cacheUrl(url);
+
+        recordClick(shortCode, request);
 
         clickCounterService.increment(shortCode);
 
