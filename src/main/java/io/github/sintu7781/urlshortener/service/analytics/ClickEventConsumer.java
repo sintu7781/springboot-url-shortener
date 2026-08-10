@@ -23,6 +23,8 @@ public class ClickEventConsumer {
 
     private final ClickEventProcessor clickEventProcessor;
 
+    private final ClickEventRetryService retryService;
+
     @Scheduled(fixedDelay = 100)
     public void consume() {
 
@@ -62,6 +64,10 @@ public class ClickEventConsumer {
                     "Failed to process click event: "
                     + ex.getMessage()
             );
+
+            retryService.retry(eventJson);
+
+            removeProcessedEvent(eventJson);
         }
     }
 
