@@ -1,15 +1,27 @@
 package io.github.sintu7781.urlshortener.service.analytics;
 
+import io.github.sintu7781.urlshortener.config.RedisStreamConfig;
 import io.github.sintu7781.urlshortener.dto.event.ClickEvent;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.connection.stream.Consumer;
+import org.springframework.data.redis.connection.stream.MapRecord;
+import org.springframework.data.redis.connection.stream.ReadOffset;
+import org.springframework.data.redis.connection.stream.StreamOffset;
 import org.springframework.data.redis.core.StringRedisTemplate;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.data.redis.stream.StreamMessageListenerContainer;
+import org.springframework.data.redis.stream.Subscription;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
+
+import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
 public class ClickEventConsumer {
+
+    private final RedisStreamConfig redisStreamConfig;
 
     private final StringRedisTemplate redisTemplate;
 
@@ -17,67 +29,100 @@ public class ClickEventConsumer {
 
     private final ClickEventProcessor clickEventProcessor;
 
-    private final ClickEventRetryService retryService;
+    private Subscription subscription;
 
-    @Scheduled(fixedDelay = 100)
-    public void consume() {
+    @PostConstruct
+    public void start() {
 
-        for (int i = 0; i < 100; i++) {
+        StreamMessageListenerContainer
+                .StreamMessageListenerContainerOptions<
+                    String,
+                    MapRecord<String, String, String>
+                    > options =
+                StreamMessageListenerContainer
+                        .StreamMessageListenerContainerOptions
+                        .builder()
+                        .pollTimeout(Duration.ofSeconds(1))
+                        .build();
 
-            String eventJson = redisTemplate.opsForList()
-                    .rightPopAndLeftPush(
-                            ClickEventPublisher.CLICK_EVENT_STREAM,
-                            ClickEventPublisher.CLICK_EVENT_GROUP
-                    );
+        StreamMessageListenerContainer<
+                String,
+                MapRecord<String, String, String>
+                > container =
+                StreamMessageListenerContainer.create(
+                        redisTemplate.getRequiredConnectionFactory(),
+                        options
+                );
 
-            if (eventJson == null) {
-                return;
-            }
+        subscription = container.receive(
+                Consumer.from(
+                        ClickEventPublisher.CLICK_EVENT_GROUP,
+                        redisStreamConfig.consumerName()
+                ),
+                StreamOffset.create(
+                        ClickEventPublisher.CLICK_EVENT_STREAM,
+                        ReadOffset.lastConsumed()
+                ),
+                this::processRecord
+        );
 
-            processEvent(eventJson);
-
-        }
+        container.start();
     }
 
-    private void processEvent(String eventJson) {
+    private void processRecord(
+            MapRecord<String, String, String> record
+    ) {
+
+        String eventJson = record.getValue()
+                .get("event");
+
+        if(eventJson == null) {
+
+            acknowledge(record);
+
+            return;
+        }
 
         try {
 
-            ClickEvent event = objectMapper.readValue(
-                    eventJson,
-                    ClickEvent.class
+            ClickEvent event =
+                    objectMapper.readValue(
+                        eventJson,
+                        ClickEvent.class
             );
 
             clickEventProcessor.process(event);
 
-            removeProcessedEvent(eventJson);
+            acknowledge(record);
 
         } catch (Exception ex) {
 
             System.err.println(
                     "Failed to process click event: "
+                    + record.getId()
+                    + ": "
                     + ex.getMessage()
             );
-
-            retryService.retry(eventJson);
-
-            removeProcessedEvent(eventJson);
         }
     }
 
-    public void retry(String eventJson) {
+    private void acknowledge(
+            MapRecord<String, String, String> record
+    ) {
 
-        processEvent(eventJson);
-
+        redisTemplate.opsForStream()
+                .acknowledge(
+                        ClickEventPublisher.CLICK_EVENT_GROUP,
+                        record
+                );
     }
 
-    private void removeProcessedEvent(String eventJson) {
+    @PreDestroy
+    public void stop() {
 
-        redisTemplate.opsForList()
-                .remove(
-                        ClickEventPublisher.CLICK_EVENT_GROUP,
-                        1,
-                        eventJson
-                );
+        if(subscription != null) {
+
+            subscription.cancel();
+        }
     }
 }
