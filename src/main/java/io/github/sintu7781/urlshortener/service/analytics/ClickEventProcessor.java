@@ -32,7 +32,11 @@ public class ClickEventProcessor {
                 .orElse(null);
 
         if(url == null) {
-            return;
+
+            throw new IllegalStateException(
+                    "URL not found for shortCode: "
+                    + event.shortCode()
+            );
         }
 
         UrlClick click = UrlClick.builder()
