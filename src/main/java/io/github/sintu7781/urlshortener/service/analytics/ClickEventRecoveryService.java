@@ -33,7 +33,7 @@ public class ClickEventRecoveryService {
     private static final Duration MIN_IDLE_TIME =
             Duration.ofSeconds(60);
 
-    private static final long BATCH_SIZE = 100;
+    private static final long BATCH_SIZE = 100L;
 
     private static final long MAX_RETRY_ATTEMPTS = 5L;
 
