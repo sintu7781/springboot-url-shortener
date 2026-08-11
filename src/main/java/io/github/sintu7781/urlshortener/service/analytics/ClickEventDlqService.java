@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -95,6 +96,9 @@ public class ClickEventDlqService {
         String replayKey =
                 REPLAY_KEY_PREFIX + dlqRecordId;
 
+        String replayedAt =
+                Instant.now().toString();
+
         String result =
                 redisTemplate.execute(
                         replayScript,
@@ -103,7 +107,8 @@ public class ClickEventDlqService {
                                 ClickEventPublisher.CLICK_EVENT_STREAM
                         ),
                         eventValue.toString(),
-                        "100000"
+                        "100000",
+                        replayedAt
                 );
 
         if(result.startsWith("ALREADY_REPLAYED:")) {
@@ -152,14 +157,16 @@ public class ClickEventDlqService {
                 );
             }
 
-            if(audit.newStreamId() == null || audit.newStreamId().isEmpty()) {
+            if(audit.newStreamId() == null
+                    || audit.newStreamId().isEmpty()) {
 
                 throw new IllegalStateException(
                         "Replay result does not contain newStreamId."
                 );
             }
 
-            if(audit.replayedAt() == null || audit.replayedAt().isEmpty()) {
+            if(audit.replayedAt() == null
+                    || audit.replayedAt().isEmpty()) {
 
                 throw new  IllegalStateException(
                         "Replay result does not contain replayedAt."
