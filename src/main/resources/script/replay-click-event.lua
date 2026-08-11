@@ -3,8 +3,12 @@ local streamKey = KEYS[2]
 
 local event = ARGV[1]
 local maxLength = ARGV[2]
+local replayedAt = ARGV[3]
 
-local existing = redis.call('GET', replayKey)
+local existing = redis.call(
+    'GET',
+    replayKey
+)
 
 if existing then
     return 'ALREADY_REPLAYED:' .. existing
@@ -21,14 +25,11 @@ local recordId = redis.call(
     event
 )
 
-local replayedAt =
-    redis.call('TIME')
-
 local auditData =
     '{"newStreamId":"' ..
     recordId ..
     '","replayedAt":"' ..
-    replayedAt[1] ..
+    replayedAt ..
     '"}'
 
 redis.call(
