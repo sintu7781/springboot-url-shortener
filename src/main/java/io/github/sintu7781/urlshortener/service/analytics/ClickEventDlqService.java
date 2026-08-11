@@ -1,16 +1,18 @@
 package io.github.sintu7781.urlshortener.service.analytics;
 
 import io.github.sintu7781.urlshortener.dto.response.ClickEventDlqPageResponse;
+import io.github.sintu7781.urlshortener.dto.response.ClickEventDlqReplayResponse;
 import io.github.sintu7781.urlshortener.dto.response.ClickEventDlqResponse;
+import io.github.sintu7781.urlshortener.dto.response.ReplayAudit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.Limit;
 import org.springframework.data.redis.connection.stream.MapRecord;
-import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
+import tools.jackson.databind.ObjectMapper;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -29,11 +31,16 @@ public class ClickEventDlqService {
 
     private final DefaultRedisScript<String> replayScript;
 
+    private final ObjectMapper objectMapper;
+
     public ClickEventDlqService(
-            StringRedisTemplate redisTemplate
+            StringRedisTemplate redisTemplate,
+            ObjectMapper objectMapper
     ) {
 
         this.redisTemplate = redisTemplate;
+
+        this.objectMapper = objectMapper;
 
         try {
 
@@ -62,7 +69,7 @@ public class ClickEventDlqService {
         }
     }
 
-    public RecordId replay(String dlqRecordId) {
+    public ClickEventDlqReplayResponse replay(String dlqRecordId) {
 
         MapRecord<String, Object, Object> record =
                 findRecord(dlqRecordId);
@@ -123,16 +130,61 @@ public class ClickEventDlqService {
             );
         }
 
-        String newRecordId =
+        String auditJson =
                 result.substring("REPLAYED:".length());
 
-        log.info(
-                "Replayed DLQ event {} as new stream event {}",
-                dlqRecordId,
-                newRecordId
-        );
+        try {
 
-        return RecordId.of(newRecordId);
+            ReplayAudit audit;
+
+            try {
+
+                audit = objectMapper.readValue(
+                        auditJson,
+                        ReplayAudit.class
+                );
+
+            } catch (Exception ex) {
+
+                throw new IllegalStateException(
+                        "Failed to parse DLQ replay result.",
+                        ex
+                );
+            }
+
+            if(audit.newStreamId() == null || audit.newStreamId().isEmpty()) {
+
+                throw new IllegalStateException(
+                        "Replay result does not contain newStreamId."
+                );
+            }
+
+            if(audit.replayedAt() == null || audit.replayedAt().isEmpty()) {
+
+                throw new  IllegalStateException(
+                        "Replay result does not contain replayedAt."
+                );
+            }
+
+            log.info(
+                    "Replayed DLQ event {} as new stream event {}",
+                    dlqRecordId,
+                    audit.newStreamId()
+            );
+
+            return ClickEventDlqReplayResponse.builder()
+                    .dlqRecordId(dlqRecordId)
+                    .newStreamId(audit.newStreamId())
+                    .replayedAt(audit.replayedAt())
+                    .build();
+
+        } catch (Exception ex) {
+
+            throw new IllegalStateException(
+                    "Failed to parse DLQ replay result.",
+                    ex
+            );
+        }
     }
 
     public ClickEventDlqPageResponse list(
