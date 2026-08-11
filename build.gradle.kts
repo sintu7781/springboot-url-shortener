@@ -53,3 +53,7 @@ tasks.withType<Test> {
     useJUnitPlatform()
     systemProperty("user.timezone", "UTC")
 }
+
+tasks.named<org.springframework.boot.gradle.tasks.run.BootRun>("bootRun") {
+    systemProperty("user.timezone", "UTC")
+}
