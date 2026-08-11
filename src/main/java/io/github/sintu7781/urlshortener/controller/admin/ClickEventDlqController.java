@@ -2,6 +2,7 @@ package io.github.sintu7781.urlshortener.controller.admin;
 
 import io.github.sintu7781.urlshortener.common.response.ApiResponse;
 import io.github.sintu7781.urlshortener.dto.response.ClickEventDlqPageResponse;
+import io.github.sintu7781.urlshortener.dto.response.ClickEventDlqReplayResponse;
 import io.github.sintu7781.urlshortener.service.analytics.ClickEventDlqService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -41,21 +42,19 @@ public class ClickEventDlqController {
     }
 
     @PostMapping("/{recordId}/replay")
-    public ResponseEntity<ApiResponse<String>> replay(
+    public ResponseEntity<ApiResponse<ClickEventDlqReplayResponse>> replay(
             @PathVariable String recordId
     ) {
 
-        String newRecordId =
-                clickEventDlqService
-                        .replay(recordId)
-                        .getValue();
+        ClickEventDlqReplayResponse result =
+                clickEventDlqService.replay(recordId);
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(
-                        ApiResponse.<String>builder()
+                        ApiResponse.<ClickEventDlqReplayResponse>builder()
                                 .success(true)
                                 .message("Click event replayed successfully.")
-                                .data(newRecordId)
+                                .data(result)
                                 .timestamp(Instant.now())
                                 .build()
                 );
