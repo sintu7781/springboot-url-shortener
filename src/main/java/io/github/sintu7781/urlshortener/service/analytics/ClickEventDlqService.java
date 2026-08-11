@@ -5,6 +5,7 @@ import io.github.sintu7781.urlshortener.dto.response.ClickEventDlqResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Range;
+import org.springframework.data.redis.connection.Limit;
 import org.springframework.data.redis.connection.RedisStreamCommands;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.RecordId;
@@ -22,9 +23,26 @@ public class ClickEventDlqService {
     public static final String DEAD_LETTER_STREAM =
             "stream:click-events:dlq";
 
+    public static final String REPLAY_KEY_PREFIX =
+            "click-event:dlq:replayed:";
+
     private final StringRedisTemplate redisTemplate;
 
     public RecordId replay(String dlqRecordId) {
+
+        String replayKey =
+                REPLAY_KEY_PREFIX + dlqRecordId;
+
+        Boolean alreadyReplayed =
+                redisTemplate.hasKey(replayKey);
+
+        if(Boolean.TRUE.equals(alreadyReplayed)) {
+
+            throw new IllegalStateException(
+                    "DLQ event has already been replayed: "
+                            + dlqRecordId
+            );
+        }
 
         MapRecord<String, Object, Object> record =
                 findRecord(dlqRecordId);
@@ -70,6 +88,12 @@ public class ClickEventDlqService {
             );
         }
 
+        redisTemplate.opsForValue()
+                        .set(
+                                replayKey,
+                                newRecordId.getValue()
+                        );
+
         log.info(
                 "Replayed DLQ event {} as new stream event {}",
                 dlqRecordId,
@@ -108,7 +132,8 @@ public class ClickEventDlqService {
                 redisTemplate.opsForStream()
                 .reverseRange(
                         DEAD_LETTER_STREAM,
-                        range
+                        range,
+                        Limit.limit().count(limit + 1)
                 );
 
         boolean hasNext =
