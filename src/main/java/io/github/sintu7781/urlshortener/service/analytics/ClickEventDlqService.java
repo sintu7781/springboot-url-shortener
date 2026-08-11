@@ -9,6 +9,7 @@ import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Map;
 
 @Service
@@ -74,6 +75,15 @@ public class ClickEventDlqService {
         );
 
         return newRecordId;
+    }
+
+    public List<MapRecord<String, Object, Object>> list() {
+
+        return redisTemplate.opsForStream()
+                .reverseRange(
+                        DEAD_LETTER_STREAM,
+                        Range.unbounded()
+                );
     }
 
     private MapRecord<String, Object, Object> findRecord(
