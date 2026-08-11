@@ -1,5 +1,7 @@
 package io.github.sintu7781.urlshortener.service.analytics;
 
+import io.github.sintu7781.urlshortener.dto.response.ClickEventDlqPageResponse;
+import io.github.sintu7781.urlshortener.dto.response.ClickEventDlqResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Range;
@@ -77,13 +79,82 @@ public class ClickEventDlqService {
         return newRecordId;
     }
 
-    public List<MapRecord<String, Object, Object>> list() {
+    public ClickEventDlqPageResponse list(
+            String cursor,
+            int limit
+    ) {
 
-        return redisTemplate.opsForStream()
+        if(limit < 1 || limit > 100) {
+
+            throw new IllegalArgumentException(
+                    "Limit must be between 1 and 100."
+            );
+        }
+
+        Range<String> range;
+
+        if(cursor == null || cursor.isBlank()) {
+
+            range = Range.unbounded();
+
+        } else {
+
+            range = Range.leftUnbounded(
+                    Range.Bound.exclusive(cursor)
+            );
+        }
+
+        List<MapRecord<String, Object, Object>> records =
+                redisTemplate.opsForStream()
                 .reverseRange(
                         DEAD_LETTER_STREAM,
-                        Range.unbounded()
+                        range
                 );
+
+        boolean hasNext =
+                records.size() > limit;
+
+        List<MapRecord<String, Object, Object>> page =
+                hasNext
+                        ? records.subList(0, limit)
+                        : records;
+
+        String nextCursor =
+                hasNext
+                        ? page.getLast()
+                            .getId()
+                            .getValue()
+                        : null;
+
+        List<ClickEventDlqResponse> events =
+                page.stream()
+                        .map(record ->
+                                ClickEventDlqResponse.builder()
+                                        .recordId(
+                                                record.getId()
+                                                        .getValue()
+                                        )
+                                        .event(
+                                                value(record, "event")
+                                        )
+                                        .originalId(
+                                                value(record, "originalId")
+                                        )
+                                        .deliveryCount(
+                                                value(record, "deliveryCount")
+                                        )
+                                        .reason(
+                                                value(record, "reason")
+                                        )
+                                        .build()
+                        )
+                        .toList();
+
+        return ClickEventDlqPageResponse.builder()
+                .events(events)
+                .nextCursor(nextCursor)
+                .hasNext(hasNext)
+                .build();
     }
 
     private MapRecord<String, Object, Object> findRecord(
@@ -101,5 +172,18 @@ public class ClickEventDlqService {
                 .stream()
                 .findFirst()
                 .orElse(null);
+    }
+
+    private static String value(
+            MapRecord<String, Object, Object> record,
+            String key
+    ) {
+
+        Object value =
+                record.getValue().get(key);
+
+        return value == null
+                ? null
+                : value.toString();
     }
 }
