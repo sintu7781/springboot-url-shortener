@@ -5,6 +5,7 @@ import io.github.sintu7781.urlshortener.dto.event.ClickEvent;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.stream.Consumer;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.ReadOffset;
@@ -19,6 +20,7 @@ import java.time.Duration;
 
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class ClickEventConsumer {
 
     private final RedisStreamConfig redisStreamConfig;
@@ -97,11 +99,10 @@ public class ClickEventConsumer {
 
         } catch (Exception ex) {
 
-            System.err.println(
-                    "Failed to process click event: "
-                    + record.getId()
-                    + ": "
-                    + ex.getMessage()
+            log.error(
+                    "Failed to process click event: {}",
+                    record.getId(),
+                    ex
             );
         }
     }
