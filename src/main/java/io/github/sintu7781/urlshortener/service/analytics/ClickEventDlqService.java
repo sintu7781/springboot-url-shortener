@@ -2,21 +2,20 @@ package io.github.sintu7781.urlshortener.service.analytics;
 
 import io.github.sintu7781.urlshortener.dto.response.ClickEventDlqPageResponse;
 import io.github.sintu7781.urlshortener.dto.response.ClickEventDlqResponse;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Range;
 import org.springframework.data.redis.connection.Limit;
-import org.springframework.data.redis.connection.RedisStreamCommands;
 import org.springframework.data.redis.connection.stream.MapRecord;
 import org.springframework.data.redis.connection.stream.RecordId;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ClickEventDlqService {
 
@@ -28,21 +27,42 @@ public class ClickEventDlqService {
 
     private final StringRedisTemplate redisTemplate;
 
-    public RecordId replay(String dlqRecordId) {
+    private final DefaultRedisScript<String> replayScript;
 
-        String replayKey =
-                REPLAY_KEY_PREFIX + dlqRecordId;
+    public ClickEventDlqService(
+            StringRedisTemplate redisTemplate
+    ) {
 
-        Boolean alreadyReplayed =
-                redisTemplate.hasKey(replayKey);
+        this.redisTemplate = redisTemplate;
 
-        if(Boolean.TRUE.equals(alreadyReplayed)) {
+        try {
+
+            ClassPathResource resource =
+                    new ClassPathResource(
+                            "script/replay-click-event.lua"
+                    );
+
+            String script =
+                    new String(
+                            resource.getInputStream().readAllBytes(),
+                            StandardCharsets.UTF_8
+                    );
+
+            this.replayScript =
+                    new DefaultRedisScript<>(
+                            script,
+                            String.class
+                    );
+        } catch (Exception ex) {
 
             throw new IllegalStateException(
-                    "DLQ event has already been replayed: "
-                            + dlqRecordId
+                    "Failed to load DLQ replay Lua script.",
+                    ex
             );
         }
+    }
+
+    public RecordId replay(String dlqRecordId) {
 
         MapRecord<String, Object, Object> record =
                 findRecord(dlqRecordId);
@@ -65,34 +85,46 @@ public class ClickEventDlqService {
             );
         }
 
-        RecordId newRecordId =
-                redisTemplate.opsForStream()
-                        .add(
-                                ClickEventPublisher.CLICK_EVENT_STREAM,
-                                Map.of(
-                                        "event",
-                                        eventValue.toString()
-                                ),
-                                RedisStreamCommands.XAddOptions.trim(
-                                        RedisStreamCommands.TrimOptions
-                                                .maxLen(100_000L)
-                                                .approximate()
-                                )
-                        );
+        String replayKey =
+                REPLAY_KEY_PREFIX + dlqRecordId;
 
-        if(newRecordId == null) {
+        String result =
+                redisTemplate.execute(
+                        replayScript,
+                        List.of(
+                                replayKey,
+                                ClickEventPublisher.CLICK_EVENT_STREAM
+                        ),
+                        eventValue.toString(),
+                        "100000"
+                );
 
-            throw new IllegalArgumentException(
-                    "Failed to replay DLQ event: "
+        if(result.startsWith("ALREADY_REPLAYED:")) {
+
+            String existingAudit =
+                    result.substring(
+                            "ALREADY_REPLAYED:".length()
+                    );
+
+            throw new IllegalStateException(
+                    "DLQ event has already been replayed. "
+                            + "Original DLQ record: "
                             + dlqRecordId
+                            + ", replay: "
+                            + existingAudit
             );
         }
 
-        redisTemplate.opsForValue()
-                        .set(
-                                replayKey,
-                                newRecordId.getValue()
-                        );
+        if(!result.startsWith("REPLAYED:")) {
+
+            throw new IllegalStateException(
+                    "Unexpected replay result: "
+                            + result
+            );
+        }
+
+        String newRecordId =
+                result.substring("REPLAYED:".length());
 
         log.info(
                 "Replayed DLQ event {} as new stream event {}",
@@ -100,7 +132,7 @@ public class ClickEventDlqService {
                 newRecordId
         );
 
-        return newRecordId;
+        return RecordId.of(newRecordId);
     }
 
     public ClickEventDlqPageResponse list(
