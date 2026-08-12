@@ -3,6 +3,7 @@ package io.github.sintu7781.urlshortener.scheduler;
 import io.github.sintu7781.urlshortener.service.analytics.ClickCountSyncService;
 import io.github.sintu7781.urlshortener.service.analytics.ClickCounterService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import net.javacrumbs.shedlock.spring.annotation.SchedulerLock;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.ScanOptions;
@@ -12,6 +13,7 @@ import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class ClickCountSyncScheduler {
 
     private static final String CLICK_KEY_PATTERN = "clicks:*";
@@ -79,6 +81,8 @@ public class ClickCountSyncScheduler {
     )
     public void recoverRotatedBatches() {
 
+        log.info("Starting click count recovery scan");
+
         ScanOptions options =
                 ScanOptions.scanOptions()
                         .match("click:*:sync:*")
@@ -92,11 +96,21 @@ public class ClickCountSyncScheduler {
 
                 String rotatedKey = cursor.next();
 
+                log.info(
+                        "Found rotated click-count batch: {}",
+                        rotatedKey
+                );
+
                 String shortCode = extractShortCode(
                         rotatedKey
                 );
 
                 if(shortCode == null) {
+
+                    log.warn(
+                            "Unable to extract shortCode from rotated key: {}",
+                            rotatedKey
+                    );
                     continue;
                 }
 
@@ -109,8 +123,19 @@ public class ClickCountSyncScheduler {
                 if(synced) {
 
                     clickCounterService.deleteKey(rotatedKey);
+
+                    log.info(
+                            "Successfully synchronized rotated batch: {}",
+                            rotatedKey
+                    );
                 }
             }
+        } catch (Exception ex) {
+
+            log.error(
+                    "Click count recovery scan failed",
+                    ex
+            );
         }
     }
 
