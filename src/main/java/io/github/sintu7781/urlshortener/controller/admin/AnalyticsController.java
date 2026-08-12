@@ -3,6 +3,7 @@ package io.github.sintu7781.urlshortener.controller.admin;
 import io.github.sintu7781.urlshortener.common.response.ApiResponse;
 import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsRangeResponse;
 import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsResponse;
+import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsTimeSeriesResponse;
 import io.github.sintu7781.urlshortener.service.analytics.AnalyticsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -56,6 +57,33 @@ public class AnalyticsController {
                         ApiResponse.<UrlAnalyticsRangeResponse>builder()
                                 .success(true)
                                 .message("URL analytics range fetched successfully.")
+                                .data(result)
+                                .timestamp(Instant.now())
+                                .build()
+                );
+    }
+
+    @GetMapping("/{shortCode}/timeseries")
+    public ResponseEntity<ApiResponse<UrlAnalyticsTimeSeriesResponse>> getUrlAnalyticsTimeSeries(
+            @PathVariable String shortCode,
+            @RequestParam Instant from,
+            @RequestParam Instant to
+    ) {
+
+        UrlAnalyticsTimeSeriesResponse result =
+                analyticsService.getUrlAnalyticsTimeSeries(
+                        shortCode,
+                        from,
+                        to
+                );
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(
+                        ApiResponse.<UrlAnalyticsTimeSeriesResponse>builder()
+                                .success(true)
+                                .message(
+                                        "URL analytics time series fetched successfully."
+                                )
                                 .data(result)
                                 .timestamp(Instant.now())
                                 .build()
