@@ -22,7 +22,7 @@ public class ClickCounterService {
             
             local newKey = KEYS[1] .. ':sync:' .. ARGV[1]
             
-            redis.call('RENAME', KEYS[1], newKeys)
+            redis.call('RENAME', KEYS[1], newKey)
             
             return newKey
             """;
@@ -39,8 +39,21 @@ public class ClickCounterService {
 
     public long get(String shortCode) {
 
+        String value =
+                redisTemplate.opsForValue()
+                        .get(buildKey(shortCode));
+
+        if (value == null) {
+            return 0L;
+        }
+
+        return Long.parseLong(value);
+    }
+
+    public long getRotatedCount(String rotatedKey) {
+
         String value = redisTemplate.opsForValue()
-                .get(buildKey(shortCode));
+                .get(rotatedKey);
 
         if(value == null) {
             return 0L;
@@ -67,20 +80,9 @@ public class ClickCounterService {
         );
     }
 
-    public long getAndDelete(String key) {
-        String value = redisTemplate.opsForValue()
-                .getAndDelete(key);
+    public void deleteKey(String key) {
 
-        if(value == null) {
-            return 0L;
-        }
-
-        return Long.parseLong(value);
-    }
-
-    public void delete(String shortCode) {
-
-        redisTemplate.delete(buildKey(shortCode));
+        redisTemplate.delete(key);
     }
 
     private String buildKey(String shortCode) {
