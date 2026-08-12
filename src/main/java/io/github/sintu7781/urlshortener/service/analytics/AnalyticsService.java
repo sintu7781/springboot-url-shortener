@@ -1,9 +1,6 @@
 package io.github.sintu7781.urlshortener.service.analytics;
 
-import io.github.sintu7781.urlshortener.dto.response.ClickTimeSeriesPoint;
-import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsRangeResponse;
-import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsResponse;
-import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsTimeSeriesResponse;
+import io.github.sintu7781.urlshortener.dto.response.*;
 import io.github.sintu7781.urlshortener.entity.Url;
 import io.github.sintu7781.urlshortener.repository.UrlClickRepository;
 import io.github.sintu7781.urlshortener.repository.UrlRepository;
@@ -25,13 +22,7 @@ public class AnalyticsService {
             String shortCode
     ) {
 
-        Url url = urlRepository
-                .findByShortCode(shortCode)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "URL not found: " + shortCode
-                        )
-                );
+        Url url = findUrl(shortCode);
 
         long totalClicks =
                 urlClickRepository.countByUrlId(
@@ -57,13 +48,7 @@ public class AnalyticsService {
 
         validateTimeRange(from, to);
 
-        Url url = urlRepository
-                .findByShortCode(shortCode)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "URL not found: " + shortCode
-                        )
-                );
+        Url url = findUrl(shortCode);
 
         long clicks =
                 urlClickRepository
@@ -89,13 +74,7 @@ public class AnalyticsService {
 
         validateTimeRange(from, to);
 
-        Url url = urlRepository
-                .findByShortCode(shortCode)
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "URL not found: " + shortCode
-                        )
-                );
+        Url url = findUrl(shortCode);
 
         List<ClickTimeSeriesPoint> points =
                 urlClickRepository
@@ -121,6 +100,40 @@ public class AnalyticsService {
                 .build();
     }
 
+    public UrlAnalyticsHourlyResponse getUrlAnalyticsHourly(
+            String shortCode,
+            Instant from,
+            Instant to
+    ) {
+
+        validateTimeRange(from, to);
+
+        Url url = findUrl(shortCode);
+
+        List<ClickHourlyTimeSeriesPoint> points =
+                urlClickRepository
+                        .findHourlyClickTimeSeries(
+                                url.getId(),
+                                from,
+                                to
+                        )
+                        .stream()
+                        .map(point ->
+                                ClickHourlyTimeSeriesPoint.builder()
+                                        .hour(point.getHour())
+                                        .clicks(point.getClicks())
+                                        .build()
+                        )
+                        .toList();
+
+        return UrlAnalyticsHourlyResponse.builder()
+                .shortCode(url.getShortCode())
+                .from(from)
+                .to(to)
+                .points(points)
+                .build();
+    }
+
     private void validateTimeRange(
             Instant from,
             Instant to
@@ -139,5 +152,16 @@ public class AnalyticsService {
                     "'from' must be before 'to'."
             );
         }
+    }
+
+    private Url findUrl(String shortCode) {
+
+        return urlRepository
+                .findByShortCode(shortCode)
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "URL not found: " + shortCode
+                        )
+                );
     }
 }
