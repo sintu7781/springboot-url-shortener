@@ -134,6 +134,41 @@ public class AnalyticsService {
                 .build();
     }
 
+    public UrlAnalyticsReferrerResponse getUrlAnalyticsReferrers(
+            String shortCode,
+            int limit
+    ) {
+
+        if(limit < 1 || limit > 100) {
+
+            throw new IllegalArgumentException(
+                    "Limit must be between 1 and 100."
+            );
+        }
+
+        Url url = findUrl(shortCode);
+
+        List<ClickReferrerPoint> referrers =
+                urlClickRepository
+                        .findTopReferrers(
+                                url.getId(),
+                                limit
+                        )
+                        .stream()
+                        .map(point ->
+                                ClickReferrerPoint.builder()
+                                        .referrer(point.getReferrer())
+                                        .clicks(point.getClicks())
+                                        .build()
+                        )
+                        .toList();
+
+        return UrlAnalyticsReferrerResponse.builder()
+                .shortCode(url.getShortCode())
+                .referrers(referrers)
+                .build();
+    }
+
     private void validateTimeRange(
             Instant from,
             Instant to
