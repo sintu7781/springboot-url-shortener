@@ -47,7 +47,9 @@ public class ClickEventDlqController {
     ) {
 
         ClickEventDlqReplayResponse result =
-                clickEventDlqService.replay(recordId);
+                clickEventDlqService.replay(
+                        recordId
+                );
 
         return ResponseEntity.status(HttpStatus.OK)
                 .body(
