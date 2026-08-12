@@ -1,10 +1,7 @@
 package io.github.sintu7781.urlshortener.controller.admin;
 
 import io.github.sintu7781.urlshortener.common.response.ApiResponse;
-import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsHourlyResponse;
-import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsRangeResponse;
-import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsResponse;
-import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsTimeSeriesResponse;
+import io.github.sintu7781.urlshortener.dto.response.*;
 import io.github.sintu7781.urlshortener.service.analytics.AnalyticsService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -111,6 +108,31 @@ public class AnalyticsController {
                                 .success(true)
                                 .message(
                                         "URL analytics hourly time series fetched successfully."
+                                )
+                                .data(result)
+                                .timestamp(Instant.now())
+                                .build()
+                );
+    }
+
+    @GetMapping("/{shortCode}/referrers")
+    public ResponseEntity<ApiResponse<UrlAnalyticsReferrerResponse>> getUrlAnalyticsReferrers(
+            @PathVariable String shortCode,
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+
+        UrlAnalyticsReferrerResponse result =
+                analyticsService.getUrlAnalyticsReferrers(
+                        shortCode,
+                        limit
+                );
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(
+                        ApiResponse.<UrlAnalyticsReferrerResponse>builder()
+                                .success(true)
+                                .message(
+                                        "URL analytics referrers fetched successfully."
                                 )
                                 .data(result)
                                 .timestamp(Instant.now())
