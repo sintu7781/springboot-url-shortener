@@ -1,6 +1,7 @@
 package io.github.sintu7781.urlshortener.controller.admin;
 
 import io.github.sintu7781.urlshortener.common.response.ApiResponse;
+import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsHourlyResponse;
 import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsRangeResponse;
 import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsResponse;
 import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsTimeSeriesResponse;
@@ -83,6 +84,33 @@ public class AnalyticsController {
                                 .success(true)
                                 .message(
                                         "URL analytics time series fetched successfully."
+                                )
+                                .data(result)
+                                .timestamp(Instant.now())
+                                .build()
+                );
+    }
+
+    @GetMapping("/{shortCode}/timeseries/hourly")
+    public ResponseEntity<ApiResponse<UrlAnalyticsHourlyResponse>> getUrlAnalyticsHourly(
+            @PathVariable String shortCode,
+            @RequestParam Instant from,
+            @RequestParam Instant to
+    ) {
+
+        UrlAnalyticsHourlyResponse result =
+                analyticsService.getUrlAnalyticsHourly(
+                        shortCode,
+                        from,
+                        to
+                );
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(
+                        ApiResponse.<UrlAnalyticsHourlyResponse>builder()
+                                .success(true)
+                                .message(
+                                        "URL analytics hourly time series fetched successfully."
                                 )
                                 .data(result)
                                 .timestamp(Instant.now())
