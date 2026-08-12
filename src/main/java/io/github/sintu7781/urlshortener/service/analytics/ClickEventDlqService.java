@@ -70,7 +70,9 @@ public class ClickEventDlqService {
         }
     }
 
-    public ClickEventDlqReplayResponse replay(String dlqRecordId) {
+    public ClickEventDlqReplayResponse replay(
+            String dlqRecordId
+    ) {
 
         MapRecord<String, Object, Object> record =
                 findRecord(dlqRecordId);
@@ -138,52 +140,15 @@ public class ClickEventDlqService {
         String auditJson =
                 result.substring("REPLAYED:".length());
 
+
+        ReplayAudit audit;
+
         try {
 
-            ReplayAudit audit;
-
-            try {
-
-                audit = objectMapper.readValue(
-                        auditJson,
-                        ReplayAudit.class
-                );
-
-            } catch (Exception ex) {
-
-                throw new IllegalStateException(
-                        "Failed to parse DLQ replay result.",
-                        ex
-                );
-            }
-
-            if(audit.newStreamId() == null
-                    || audit.newStreamId().isEmpty()) {
-
-                throw new IllegalStateException(
-                        "Replay result does not contain newStreamId."
-                );
-            }
-
-            if(audit.replayedAt() == null
-                    || audit.replayedAt().isEmpty()) {
-
-                throw new  IllegalStateException(
-                        "Replay result does not contain replayedAt."
-                );
-            }
-
-            log.info(
-                    "Replayed DLQ event {} as new stream event {}",
-                    dlqRecordId,
-                    audit.newStreamId()
+            audit = objectMapper.readValue(
+                    auditJson,
+                    ReplayAudit.class
             );
-
-            return ClickEventDlqReplayResponse.builder()
-                    .dlqRecordId(dlqRecordId)
-                    .newStreamId(audit.newStreamId())
-                    .replayedAt(audit.replayedAt())
-                    .build();
 
         } catch (Exception ex) {
 
@@ -192,6 +157,35 @@ public class ClickEventDlqService {
                     ex
             );
         }
+
+        if(audit.newStreamId() == null
+                || audit.newStreamId().isEmpty()) {
+
+            throw new IllegalStateException(
+                    "Replay result does not contain newStreamId."
+            );
+        }
+
+        if(audit.replayedAt() == null
+                || audit.replayedAt().isEmpty()) {
+
+            throw new  IllegalStateException(
+                    "Replay result does not contain replayedAt."
+            );
+        }
+
+        log.info(
+                "Replayed DLQ event {} as new stream event {}",
+                dlqRecordId,
+                audit.newStreamId()
+        );
+
+        return ClickEventDlqReplayResponse.builder()
+                .dlqRecordId(dlqRecordId)
+                .newStreamId(audit.newStreamId())
+                .replayedAt(audit.replayedAt())
+                .build();
+
     }
 
     public ClickEventDlqPageResponse list(
