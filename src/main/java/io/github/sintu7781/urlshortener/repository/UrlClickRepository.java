@@ -2,6 +2,7 @@ package io.github.sintu7781.urlshortener.repository;
 
 import io.github.sintu7781.urlshortener.entity.UrlClick;
 import io.github.sintu7781.urlshortener.repository.projection.ClickHourlyTimeSeriesProjection;
+import io.github.sintu7781.urlshortener.repository.projection.ClickReferrerProjection;
 import io.github.sintu7781.urlshortener.repository.projection.ClickTimeSeriesProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -64,5 +65,22 @@ public interface UrlClickRepository
             @Param("urlId") Long urlId,
             @Param("from") Instant from,
             @Param("to") Instant to
+    );
+
+    @Query(value = """
+            SELECT
+                c.referrer AS referrer,
+                COUNT(*) AS clicks
+            FROM url_clicks c
+            WHERE c.url_id = :urlId
+            AND c.referrer IS NOT NULL
+            AND c.referrer <> ''
+            GROUP BY c.referrer
+            ORDER BY clicks DESC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<ClickReferrerProjection> findTopReferrers(
+            @Param("urlId") Long urlId,
+            @Param("limit") int limit
     );
 }
