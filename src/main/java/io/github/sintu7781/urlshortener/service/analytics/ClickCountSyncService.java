@@ -20,13 +20,6 @@ public class ClickCountSyncService {
             String rotatedKey
     ) {
 
-        Long clicks =
-                clickCounterService.getAndDelete(rotatedKey);
-
-        if(clicks == 0) {
-            return;
-        }
-
         Url url = urlRepository
                 .findByShortCode(shortCode)
                 .orElse(null);
@@ -35,11 +28,23 @@ public class ClickCountSyncService {
             return;
         }
 
+        Long clicks =
+                clickCounterService.getRotatedCount(rotatedKey);
+
+        if(clicks <= 0) {
+
+            clickCounterService.deleteKey(rotatedKey);
+            
+            return;
+        }
+
         url.setClickCount(
                 url.getClickCount() + clicks
         );
 
         urlRepository.save(url);
+
+        clickCounterService.deleteKey(rotatedKey);
 
     }
 }
