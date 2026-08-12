@@ -1,6 +1,7 @@
 package io.github.sintu7781.urlshortener.repository;
 
 import io.github.sintu7781.urlshortener.entity.UrlClick;
+import io.github.sintu7781.urlshortener.repository.projection.ClickHourlyTimeSeriesProjection;
 import io.github.sintu7781.urlshortener.repository.projection.ClickTimeSeriesProjection;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -43,6 +44,23 @@ public interface UrlClickRepository
             ORDER BY date
             """, nativeQuery = true)
     List<ClickTimeSeriesProjection> findDailyClickTimeSeries(
+            @Param("urlId") Long urlId,
+            @Param("from") Instant from,
+            @Param("to") Instant to
+    );
+
+    @Query(value = """
+            SELECT
+                DATE_TRUNC('hour', c.clicked_at) AS hour,
+                COUNT(*) AS clicks
+            FROM url_clicks c
+            WHERE c.url_id = :urlId
+            AND c.clicked_at >= :from
+            AND c.clicked_at < :to
+            GROUP BY DATE_TRUNC('hour', c.clicked_at)
+            ORDER BY hour
+            """, nativeQuery = true)
+    List<ClickHourlyTimeSeriesProjection> findHourlyClickTimeSeries(
             @Param("urlId") Long urlId,
             @Param("from") Instant from,
             @Param("to") Instant to
