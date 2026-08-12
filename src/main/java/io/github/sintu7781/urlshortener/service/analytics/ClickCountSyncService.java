@@ -1,10 +1,14 @@
 package io.github.sintu7781.urlshortener.service.analytics;
 
+import io.github.sintu7781.urlshortener.entity.ClickCountSyncBatch;
 import io.github.sintu7781.urlshortener.entity.Url;
+import io.github.sintu7781.urlshortener.repository.ClickCountSyncBatchRepository;
 import io.github.sintu7781.urlshortener.repository.UrlRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -14,8 +18,10 @@ public class ClickCountSyncService {
 
     private final ClickCounterService clickCounterService;
 
+    private final ClickCountSyncBatchRepository batchRepository;
+
     @Transactional
-    public void sync(
+    public boolean sync(
             String shortCode,
             String rotatedKey
     ) {
@@ -25,18 +31,29 @@ public class ClickCountSyncService {
                 .orElse(null);
 
         if(url == null) {
-            return;
+            return false;
         }
 
         Long clicks =
                 clickCounterService.getRotatedCount(rotatedKey);
 
         if(clicks <= 0) {
-
-            clickCounterService.deleteKey(rotatedKey);
-            
-            return;
+            return true;
         }
+
+        if(batchRepository.existsById(rotatedKey)) {
+            return true;
+        }
+
+        ClickCountSyncBatch batch =
+                ClickCountSyncBatch.builder()
+                        .batchKey(rotatedKey)
+                        .shortCode(shortCode)
+                        .clickCount(clicks)
+                        .processedAt(LocalDateTime.now())
+                        .build();
+
+        batchRepository.save(batch);
 
         url.setClickCount(
                 url.getClickCount() + clicks
@@ -44,7 +61,6 @@ public class ClickCountSyncService {
 
         urlRepository.save(url);
 
-        clickCounterService.deleteKey(rotatedKey);
-
+        return true;
     }
 }
