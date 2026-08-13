@@ -17,6 +17,8 @@ public class ClickEventProcessor {
 
     private final UrlClickRepository urlClickRepository;
 
+    private final AnalyticsCacheService analyticsCacheService;
+
     private final UserAgentParserService userAgentParserService;
 
     @Transactional
@@ -63,6 +65,10 @@ public class ClickEventProcessor {
                 .build();
 
         urlClickRepository.save(click);
+
+        analyticsCacheService.evictDashboard(
+                event.shortCode()
+        );
 
     }
 }
