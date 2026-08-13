@@ -47,10 +47,20 @@ public class AnalyticsCacheService {
 
         if(cachedValue == null || cachedValue.isBlank()) {
 
+            log.debug(
+                    "Analytics dashboard cache miss. key={}",
+                    key
+            );
+
             return Optional.empty();
         }
 
         try {
+
+            log.debug(
+                    "Analytics dashboard cache hit. key={}",
+                    key
+            );
 
             return Optional.of(
                     objectMapper.readValue(
