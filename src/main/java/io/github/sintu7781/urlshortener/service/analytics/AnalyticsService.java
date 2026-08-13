@@ -139,12 +139,7 @@ public class AnalyticsService {
             int limit
     ) {
 
-        if(limit < 1 || limit > 100) {
-
-            throw new IllegalArgumentException(
-                    "Limit must be between 1 and 100."
-            );
-        }
+        validateLimit(limit);
 
         Url url = findUrl(shortCode);
 
@@ -166,6 +161,36 @@ public class AnalyticsService {
         return UrlAnalyticsReferrerResponse.builder()
                 .shortCode(url.getShortCode())
                 .referrers(referrers)
+                .build();
+    }
+
+    public UrlAnalyticsUserAgentResponse getUrlAnalyticsUserAgents(
+            String shortCode,
+            int limit
+    ) {
+
+        validateLimit(limit);
+
+        Url url = findUrl(shortCode);
+
+        List<ClickUserAgentPoint> userAgents =
+                urlClickRepository
+                        .findTopUserAgents(
+                                url.getId(),
+                                limit
+                        )
+                        .stream()
+                        .map(point ->
+                                ClickUserAgentPoint.builder()
+                                        .userAgent(point.getUserAgent())
+                                        .clicks(point.getClicks())
+                                        .build()
+                        )
+                        .toList();
+
+        return UrlAnalyticsUserAgentResponse.builder()
+                .shortCode(url.getShortCode())
+                .userAgents(userAgents)
                 .build();
     }
 
@@ -198,5 +223,16 @@ public class AnalyticsService {
                                 "URL not found: " + shortCode
                         )
                 );
+    }
+
+    private void validateLimit(int limit) {
+
+        if(limit < 1 || limit > 100) {
+
+            throw new IllegalArgumentException(
+                    "Limit must be between 1 and 100."
+            );
+        }
+
     }
 }
