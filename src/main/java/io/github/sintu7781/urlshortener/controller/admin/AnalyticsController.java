@@ -65,14 +65,16 @@ public class AnalyticsController {
     public ResponseEntity<ApiResponse<UrlAnalyticsTimeSeriesResponse>> getUrlAnalyticsTimeSeries(
             @PathVariable String shortCode,
             @RequestParam Instant from,
-            @RequestParam Instant to
+            @RequestParam Instant to,
+            @RequestParam(defaultValue = "UTC") String timezone
     ) {
 
         UrlAnalyticsTimeSeriesResponse result =
                 analyticsService.getUrlAnalyticsTimeSeries(
                         shortCode,
                         from,
-                        to
+                        to,
+                        timezone
                 );
 
         return ResponseEntity.status(HttpStatus.OK)
@@ -92,14 +94,16 @@ public class AnalyticsController {
     public ResponseEntity<ApiResponse<UrlAnalyticsHourlyResponse>> getUrlAnalyticsHourly(
             @PathVariable String shortCode,
             @RequestParam Instant from,
-            @RequestParam Instant to
+            @RequestParam Instant to,
+            @RequestParam(defaultValue = "UTC") String timezone
     ) {
 
         UrlAnalyticsHourlyResponse result =
                 analyticsService.getUrlAnalyticsHourly(
                         shortCode,
                         from,
-                        to
+                        to,
+                        timezone
                 );
 
         return ResponseEntity.status(HttpStatus.OK)
@@ -245,7 +249,8 @@ public class AnalyticsController {
             @PathVariable String shortCode,
             @RequestParam Instant from,
             @RequestParam Instant to,
-            @RequestParam(defaultValue = "10") int limit
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(defaultValue = "UTC") String timezone
     ) {
 
         UrlAnalyticsDashboardResponse result =
@@ -253,7 +258,8 @@ public class AnalyticsController {
                         shortCode,
                         from,
                         to,
-                        limit
+                        limit,
+                        timezone
                 );
 
         return ResponseEntity.status(HttpStatus.OK)
