@@ -81,6 +81,24 @@ public class UrlClick {
     private String userAgent;
 
     @Column(
+            name = "browser",
+            length = 100
+    )
+    private String browser;
+
+    @Column(
+            name = "operating_system",
+            length = 100
+    )
+    private String operatingSystem;
+
+    @Column(
+            name = "device_type",
+            length = 50
+    )
+    private String deviceType;
+
+    @Column(
             name = "referrer",
             length = 2000
     )
