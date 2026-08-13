@@ -30,6 +30,7 @@ dependencies {
     implementation("org.mapstruct:mapstruct:1.6.3")
     implementation("net.javacrumbs.shedlock:shedlock-spring:7.7.0")
     implementation("net.javacrumbs.shedlock:shedlock-provider-jdbc-template:7.7.0")
+    implementation("nl.basjes.parse.useragent:yauaa:8.2.0")
     compileOnly("org.projectlombok:lombok")
 //    developmentOnly("org.springframework.boot:spring-boot-devtools")
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
