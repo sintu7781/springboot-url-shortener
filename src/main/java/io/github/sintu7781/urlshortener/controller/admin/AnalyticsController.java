@@ -189,4 +189,29 @@ public class AnalyticsController {
                                 .build()
                 );
     }
+
+    @GetMapping("/{shortCode}/operating-systems")
+    public  ResponseEntity<ApiResponse<UrlAnalyticsOperatingSystemResponse>> getUrlAnalyticsOperatingSystems(
+            @PathVariable String shortCode,
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+
+        UrlAnalyticsOperatingSystemResponse result =
+                analyticsService.getUrlAnalyticsOperatingSystems(
+                        shortCode,
+                        limit
+                );
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(
+                        ApiResponse.<UrlAnalyticsOperatingSystemResponse>builder()
+                                .success(true)
+                                .message(
+                                        "URL analytics operating systems fetched successfully."
+                                )
+                                .data(result)
+                                .timestamp(Instant.now())
+                                .build()
+                );
+    }
 }
