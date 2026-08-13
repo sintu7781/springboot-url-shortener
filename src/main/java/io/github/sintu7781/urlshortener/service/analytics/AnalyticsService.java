@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -22,6 +23,8 @@ public class AnalyticsService {
     private final UrlRepository urlRepository;
 
     private final UrlClickRepository urlClickRepository;
+
+    private final AnalyticsTimeZoneService analyticsTimeZoneService;
 
     public UrlAnalyticsResponse getUrlAnalytics(
             String shortCode
@@ -74,10 +77,14 @@ public class AnalyticsService {
     public UrlAnalyticsTimeSeriesResponse getUrlAnalyticsTimeSeries(
             String shortCode,
             Instant from,
-            Instant to
+            Instant to,
+            String timezone
     ) {
 
         validateDailyTimeRange(from, to);
+
+        ZoneId zoneId =
+                analyticsTimeZoneService.resolve(timezone);
 
         Url url = findUrl(shortCode);
 
@@ -86,7 +93,8 @@ public class AnalyticsService {
                         .findDailyClickTimeSeries(
                                 url.getId(),
                                 from,
-                                to
+                                to,
+                                zoneId.getId()
                         )
                         .stream()
                         .map(point ->
@@ -108,10 +116,14 @@ public class AnalyticsService {
     public UrlAnalyticsHourlyResponse getUrlAnalyticsHourly(
             String shortCode,
             Instant from,
-            Instant to
+            Instant to,
+            String timezone
     ) {
 
         validateHourlyTimeRange(from, to);
+
+        ZoneId zoneId =
+                analyticsTimeZoneService.resolve(timezone);
 
         Url url = findUrl(shortCode);
 
@@ -120,7 +132,8 @@ public class AnalyticsService {
                         .findHourlyClickTimeSeries(
                                 url.getId(),
                                 from,
-                                to
+                                to,
+                                zoneId.getId()
                         )
                         .stream()
                         .map(point ->
@@ -297,7 +310,8 @@ public class AnalyticsService {
             String shortCode,
             Instant from,
             Instant to,
-            int limit
+            int limit,
+            String timezone
     ) {
 
         validateTimeRange(from, to);
@@ -314,14 +328,16 @@ public class AnalyticsService {
                 getUrlAnalyticsTimeSeries(
                         shortCode,
                         from,
-                        to
+                        to,
+                        timezone
                 );
 
         UrlAnalyticsHourlyResponse hourly =
                 getUrlAnalyticsHourly(
                         shortCode,
                         from,
-                        to
+                        to,
+                        timezone
                 );
 
         UrlAnalyticsReferrerResponse referrers =
