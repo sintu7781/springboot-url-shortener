@@ -6,6 +6,7 @@ import io.github.sintu7781.urlshortener.entity.UrlClick;
 import io.github.sintu7781.urlshortener.repository.UrlClickRepository;
 import io.github.sintu7781.urlshortener.repository.UrlRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,7 +18,7 @@ public class ClickEventProcessor {
 
     private final UrlClickRepository urlClickRepository;
 
-    private final AnalyticsCacheService analyticsCacheService;
+    private final ApplicationEventPublisher eventPublisher;
 
     private final UserAgentParserService userAgentParserService;
 
@@ -39,7 +40,7 @@ public class ClickEventProcessor {
 
             throw new IllegalStateException(
                     "URL not found for shortCode: "
-                    + event.shortCode()
+                        + event.shortCode()
             );
         }
 
@@ -66,8 +67,10 @@ public class ClickEventProcessor {
 
         urlClickRepository.save(click);
 
-        analyticsCacheService.evictDashboard(
-                event.shortCode()
+        eventPublisher.publishEvent(
+                new AnalyticsCacheInvalidationEvent(
+                        event.shortCode()
+                )
         );
 
     }
