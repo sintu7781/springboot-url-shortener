@@ -7,12 +7,17 @@ import io.github.sintu7781.urlshortener.repository.UrlRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class AnalyticsService {
+
+    private static final long MAX_HOURLY_RANGE_DAYS = 31;
+
+    private static final long MAX_DAILY_RANGE_DAYS = 365;
 
     private final UrlRepository urlRepository;
 
@@ -72,7 +77,7 @@ public class AnalyticsService {
             Instant to
     ) {
 
-        validateTimeRange(from, to);
+        validateDailyTimeRange(from, to);
 
         Url url = findUrl(shortCode);
 
@@ -106,7 +111,7 @@ public class AnalyticsService {
             Instant to
     ) {
 
-        validateTimeRange(from, to);
+        validateHourlyTimeRange(from, to);
 
         Url url = findUrl(shortCode);
 
@@ -371,6 +376,42 @@ public class AnalyticsService {
 
             throw new IllegalArgumentException(
                     "'from' must be before 'to'."
+            );
+        }
+    }
+
+    private void validateDailyTimeRange(
+            Instant from,
+            Instant to
+    ) {
+
+        validateTimeRange(from, to);
+
+        if(Duration.between(from, to).toDays()
+                > MAX_DAILY_RANGE_DAYS) {
+
+            throw new IllegalArgumentException(
+                    "Daily analytics range cannot exceed "
+                            + MAX_DAILY_RANGE_DAYS
+                            + " days."
+            );
+        }
+    }
+
+    private void validateHourlyTimeRange(
+            Instant from,
+            Instant to
+    ) {
+
+        validateTimeRange(from, to);
+
+        if(Duration.between(from, to).toDays()
+                > MAX_HOURLY_RANGE_DAYS) {
+
+            throw new IllegalArgumentException(
+                    "Hourly analytics range cannot exceed "
+                            + MAX_HOURLY_RANGE_DAYS
+                            + " days."
             );
         }
     }
