@@ -164,4 +164,29 @@ public class AnalyticsController {
                                 .build()
                 );
     }
+
+    @GetMapping("/{shortCode}/browsers")
+    public  ResponseEntity<ApiResponse<UrlAnalyticsBrowserResponse>> getUrlAnalyticsBrowsers(
+            @PathVariable String shortCode,
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+
+        UrlAnalyticsBrowserResponse result =
+                analyticsService.getUrlAnalyticsBrowsers(
+                        shortCode,
+                        limit
+                );
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(
+                        ApiResponse.<UrlAnalyticsBrowserResponse>builder()
+                                .success(true)
+                                .message(
+                                        "URL analytics browsers fetched successfully."
+                                )
+                                .data(result)
+                                .timestamp(Instant.now())
+                                .build()
+                );
+    }
 }
