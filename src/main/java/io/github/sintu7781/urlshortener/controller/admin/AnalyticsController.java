@@ -214,4 +214,29 @@ public class AnalyticsController {
                                 .build()
                 );
     }
+
+    @GetMapping("/{shortCode}/devices")
+    public  ResponseEntity<ApiResponse<UrlAnalyticsDeviceResponse>> getUrlAnalyticsDevices(
+            @PathVariable String shortCode,
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+
+        UrlAnalyticsDeviceResponse result =
+                analyticsService.getUrlAnalyticsDevices(
+                        shortCode,
+                        limit
+                );
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(
+                        ApiResponse.<UrlAnalyticsDeviceResponse>builder()
+                                .success(true)
+                                .message(
+                                        "URL analytics devices fetched successfully."
+                                )
+                                .data(result)
+                                .timestamp(Instant.now())
+                                .build()
+                );
+    }
 }
