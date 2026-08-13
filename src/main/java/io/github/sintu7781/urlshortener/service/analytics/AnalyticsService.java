@@ -219,8 +219,40 @@ public class AnalyticsService {
                         .toList();
 
         return UrlAnalyticsBrowserResponse.builder()
-                .shortCode(shortCode)
+                .shortCode(url.getShortCode())
                 .browsers(browsers)
+                .build();
+    }
+
+    public UrlAnalyticsOperatingSystemResponse getUrlAnalyticsOperatingSystems(
+            String shortCode,
+            int limit
+    ) {
+
+        validateLimit(limit);
+
+        Url url = findUrl(shortCode);
+
+        List<ClickOperatingSystemPoint> operatingSystems =
+                urlClickRepository
+                        .findTopOperatingSystems(
+                                url.getId(),
+                                limit
+                        )
+                        .stream()
+                        .map(point ->
+                                ClickOperatingSystemPoint.builder()
+                                        .operatingSystem(
+                                                point.getOperatingSystem()
+                                        )
+                                        .clicks(point.getClicks())
+                                        .build()
+                        )
+                        .toList();
+
+        return UrlAnalyticsOperatingSystemResponse.builder()
+                .shortCode(url.getShortCode())
+                .operatingSystems(operatingSystems)
                 .build();
     }
 
