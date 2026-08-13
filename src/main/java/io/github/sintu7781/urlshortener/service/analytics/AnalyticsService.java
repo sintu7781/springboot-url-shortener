@@ -26,6 +26,8 @@ public class AnalyticsService {
 
     private final UrlClickRepository urlClickRepository;
 
+    private final AnalyticsCacheService analyticsCacheService;
+
     private UrlAnalyticsResponse getUrlAnalytics(
             Url url
     ) {
@@ -412,6 +414,23 @@ public class AnalyticsService {
 
         validateLimit(limit);
 
+        String timezone =
+                context.timezone().getId();
+
+        var cachedDashboard =
+                analyticsCacheService.getDashboard(
+                        shortCode,
+                        context.from(),
+                        context.to(),
+                        timezone,
+                        limit
+                );
+
+        if(cachedDashboard.isPresent()) {
+
+            return cachedDashboard.get();
+        }
+
         Url url = findUrl(shortCode);
 
         UrlAnalyticsResponse overview =
@@ -466,7 +485,8 @@ public class AnalyticsService {
                         limit
                 );
 
-        return UrlAnalyticsDashboardResponse.builder()
+        UrlAnalyticsDashboardResponse dashboard =
+                UrlAnalyticsDashboardResponse.builder()
                 .overview(overview)
                 .range(range)
                 .timeSeries(timeSeries)
@@ -477,6 +497,17 @@ public class AnalyticsService {
                 .operatingSystems(operatingSystems)
                 .devices(devices)
                 .build();
+
+        analyticsCacheService.putDashboard(
+                shortCode,
+                context.from(),
+                context.to(),
+                timezone,
+                limit,
+                dashboard
+        );
+
+        return dashboard;
     }
 
     private void validateTimeRange(
