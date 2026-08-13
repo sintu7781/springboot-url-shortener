@@ -115,4 +115,21 @@ public interface UrlClickRepository
             @Param("urlId") Long urlId,
             @Param("limit") int limit
     );
+
+    @Query(value = """
+            SELECT
+                c.operating_system AS operatingSystem,
+                COUNT(*) AS clicks
+            FROM url_clicks c
+            WHERE c.url_id = :urlId
+            AND c.operating_system IS NOT NULL
+            AND c.operating_system <> ''
+            GROUP BY c.operating_system
+            ORDER BY clicks DESC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<ClickOperatingSystemProjection> findTopOperatingSystems(
+            @Param("urlId") Long urlId,
+            @Param("limit") int limit
+    );
 }
