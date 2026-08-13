@@ -139,4 +139,29 @@ public class AnalyticsController {
                                 .build()
                 );
     }
+
+    @GetMapping("{shortCode}/user-agents")
+    public  ResponseEntity<ApiResponse<UrlAnalyticsUserAgentResponse>> getUrlAnalyticsUserAgents(
+            @PathVariable String shortCode,
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+
+        UrlAnalyticsUserAgentResponse result =
+                analyticsService.getUrlAnalyticsUserAgents(
+                        shortCode,
+                        limit
+                );
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(
+                        ApiResponse.<UrlAnalyticsUserAgentResponse>builder()
+                                .success(true)
+                                .message(
+                                        "URL analytics user agents fetched successfully."
+                                )
+                                .data(result)
+                                .timestamp(Instant.now())
+                                .build()
+                );
+    }
 }
