@@ -9,6 +9,7 @@ public record UrlAnalyticsDashboardResponse(
         UrlAnalyticsTimeSeriesResponse timeSeries,
         UrlAnalyticsHourlyResponse hourly,
         UrlAnalyticsReferrerResponse referrers,
+        UrlAnalyticsUserAgentResponse userAgents,
         UrlAnalyticsBrowserResponse browsers,
         UrlAnalyticsOperatingSystemResponse operatingSystems,
         UrlAnalyticsDeviceResponse devices
