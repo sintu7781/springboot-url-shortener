@@ -17,6 +17,8 @@ public class ClickEventProcessor {
 
     private final UrlClickRepository urlClickRepository;
 
+    private final UserAgentParserService userAgentParserService;
+
     @Transactional
     public void process(ClickEvent event) {
 
@@ -39,12 +41,24 @@ public class ClickEventProcessor {
             );
         }
 
+        UserAgentInfo userAgentInfo =
+                userAgentParserService.parse(
+                        event.userAgent()
+                );
+
         UrlClick click = UrlClick.builder()
                 .eventId(event.eventId())
                 .url(url)
                 .clickedAt(event.clickedAt())
                 .ipAddress(event.ipAddress())
                 .userAgent(event.userAgent())
+                .browser(userAgentInfo.browser())
+                .operatingSystem(
+                        userAgentInfo.operatingSystem()
+                )
+                .deviceType(
+                        userAgentInfo.deviceType()
+                )
                 .referrer(event.referrer())
                 .build();
 
