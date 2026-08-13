@@ -194,6 +194,36 @@ public class AnalyticsService {
                 .build();
     }
 
+    public UrlAnalyticsBrowserResponse getUrlAnalyticsBrowsers(
+            String shortCode,
+            int limit
+    ) {
+
+        validateLimit(limit);
+
+        Url url = findUrl(shortCode);
+
+        List<ClickBrowserPoint> browsers =
+                urlClickRepository
+                        .findTopBrowsers(
+                                url.getId(),
+                                limit
+                        )
+                        .stream()
+                        .map(point ->
+                                ClickBrowserPoint.builder()
+                                        .browser(point.getBrowser())
+                                        .clicks(point.getClicks())
+                                        .build()
+                        )
+                        .toList();
+
+        return UrlAnalyticsBrowserResponse.builder()
+                .shortCode(shortCode)
+                .browsers(browsers)
+                .build();
+    }
+
     private void validateTimeRange(
             Instant from,
             Instant to
