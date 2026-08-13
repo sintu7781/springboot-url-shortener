@@ -256,6 +256,38 @@ public class AnalyticsService {
                 .build();
     }
 
+    public UrlAnalyticsDeviceResponse getUrlAnalyticsDevices(
+            String shortCode,
+            int limit
+    ) {
+
+        validateLimit(limit);
+
+        Url url = findUrl(shortCode);
+
+        List<ClickDevicePoint> devices =
+                urlClickRepository
+                        .findTopDeviceTypes(
+                                url.getId(),
+                                limit
+                        )
+                        .stream()
+                        .map(point ->
+                                ClickDevicePoint.builder()
+                                        .deviceType(
+                                                point.getDeviceType()
+                                        )
+                                        .clicks(point.getClicks())
+                                        .build()
+                        )
+                        .toList();
+
+        return UrlAnalyticsDeviceResponse.builder()
+                .shortCode(url.getShortCode())
+                .devices(devices)
+                .build();
+    }
+
     private void validateTimeRange(
             Instant from,
             Instant to
