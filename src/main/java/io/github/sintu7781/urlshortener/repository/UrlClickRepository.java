@@ -33,36 +33,52 @@ public interface UrlClickRepository
 
     @Query(value = """
             SELECT
-                CAST(c.clicked_at AS DATE) AS date,
+                click_date AS date,
                 COUNT(*) AS clicks
-            FROM url_clicks c
-            WHERE c.url_id = :urlId
-            AND c.clicked_at >= :from
-            AND c.clicked_at < :to
-            GROUP BY CAST(c.clicked_at AS DATE)
-            ORDER BY date
+            FROM (
+                SELECT
+                    CAST(
+                        c.clicked_at AT TIME ZONE :timezone
+                        AS DATE
+                    ) AS click_date
+                FROM url_clicks c
+                WHERE c.url_id = :urlId
+                AND c.clicked_at >= :from
+                AND c.clicked_at < :to
+            ) daily_clicks
+            GROUP BY click_date
+            ORDER BY click_date
             """, nativeQuery = true)
     List<ClickTimeSeriesProjection> findDailyClickTimeSeries(
             @Param("urlId") Long urlId,
             @Param("from") Instant from,
-            @Param("to") Instant to
+            @Param("to") Instant to,
+            @Param("timezone") String timezone
     );
 
     @Query(value = """
             SELECT
-                DATE_TRUNC('hour', c.clicked_at) AS hour,
+                click_hour AS hour,
                 COUNT(*) AS clicks
-            FROM url_clicks c
-            WHERE c.url_id = :urlId
-            AND c.clicked_at >= :from
-            AND c.clicked_at < :to
-            GROUP BY DATE_TRUNC('hour', c.clicked_at)
-            ORDER BY hour
+            FROM (
+                SELECT
+                    DATE_TRUNC(
+                        'hour',
+                        c.clicked_at AT TIME ZONE :timezone
+                    ) AS click_hour
+                FROM url_clicks c
+                WHERE c.url_id = :urlId
+                AND c.clicked_at >= :from
+                AND c.clicked_at < :to
+            ) hourly_clicks
+            GROUP BY click_hour
+            ORDER BY click_hour
             """, nativeQuery = true)
     List<ClickHourlyTimeSeriesProjection> findHourlyClickTimeSeries(
             @Param("urlId") Long urlId,
             @Param("from") Instant from,
-            @Param("to") Instant to
+            @Param("to") Instant to,
+            @Param("timezone") String timezone
     );
 
     @Query(value = """
