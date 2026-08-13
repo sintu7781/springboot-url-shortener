@@ -1,10 +1,7 @@
 package io.github.sintu7781.urlshortener.repository;
 
 import io.github.sintu7781.urlshortener.entity.UrlClick;
-import io.github.sintu7781.urlshortener.repository.projection.ClickHourlyTimeSeriesProjection;
-import io.github.sintu7781.urlshortener.repository.projection.ClickReferrerProjection;
-import io.github.sintu7781.urlshortener.repository.projection.ClickTimeSeriesProjection;
-import io.github.sintu7781.urlshortener.repository.projection.ClickUserAgentProjection;
+import io.github.sintu7781.urlshortener.repository.projection.*;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -98,6 +95,23 @@ public interface UrlClickRepository
             LIMIT :limit
             """, nativeQuery = true)
     List<ClickUserAgentProjection> findTopUserAgents(
+            @Param("urlId") Long urlId,
+            @Param("limit") int limit
+    );
+
+    @Query(value = """
+            SELECT
+                c.browser AS browser,
+                COUNT(*) AS clicks
+            FROM url_clicks c
+            WHERE c.url_id = :urlId
+            AND c.browser IS NOT NULL
+            AND c.browser <> ''
+            GROUP BY c.browser
+            ORDER BY clicks DESC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<ClickBrowserProjection> findTopBrowsers(
             @Param("urlId") Long urlId,
             @Param("limit") int limit
     );
