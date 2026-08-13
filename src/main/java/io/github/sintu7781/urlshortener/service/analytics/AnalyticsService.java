@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -23,8 +22,6 @@ public class AnalyticsService {
     private final UrlRepository urlRepository;
 
     private final UrlClickRepository urlClickRepository;
-
-    private final AnalyticsTimeZoneService analyticsTimeZoneService;
 
     public UrlAnalyticsResponse getUrlAnalytics(
             String shortCode
@@ -76,15 +73,13 @@ public class AnalyticsService {
 
     public UrlAnalyticsTimeSeriesResponse getUrlAnalyticsTimeSeries(
             String shortCode,
-            Instant from,
-            Instant to,
-            String timezone
+            AnalyticsContext context
     ) {
 
-        validateDailyTimeRange(from, to);
-
-        ZoneId zoneId =
-                analyticsTimeZoneService.resolve(timezone);
+        validateDailyTimeRange(
+                context.from(),
+                context.to()
+        );
 
         Url url = findUrl(shortCode);
 
@@ -92,9 +87,9 @@ public class AnalyticsService {
                 urlClickRepository
                         .findDailyClickTimeSeries(
                                 url.getId(),
-                                from,
-                                to,
-                                zoneId.getId()
+                                context.from(),
+                                context.to(),
+                                context.timezone().getId()
                         )
                         .stream()
                         .map(point ->
@@ -107,23 +102,21 @@ public class AnalyticsService {
 
         return UrlAnalyticsTimeSeriesResponse.builder()
                 .shortCode(url.getShortCode())
-                .from(from)
-                .to(to)
+                .from(context.from())
+                .to(context.to())
                 .points(points)
                 .build();
     }
 
     public UrlAnalyticsHourlyResponse getUrlAnalyticsHourly(
             String shortCode,
-            Instant from,
-            Instant to,
-            String timezone
+            AnalyticsContext context
     ) {
 
-        validateHourlyTimeRange(from, to);
-
-        ZoneId zoneId =
-                analyticsTimeZoneService.resolve(timezone);
+        validateHourlyTimeRange(
+                context.from(),
+                context.to()
+        );
 
         Url url = findUrl(shortCode);
 
@@ -131,9 +124,9 @@ public class AnalyticsService {
                 urlClickRepository
                         .findHourlyClickTimeSeries(
                                 url.getId(),
-                                from,
-                                to,
-                                zoneId.getId()
+                                context.from(),
+                                context.to(),
+                                context.timezone().getId()
                         )
                         .stream()
                         .map(point ->
@@ -146,8 +139,8 @@ public class AnalyticsService {
 
         return UrlAnalyticsHourlyResponse.builder()
                 .shortCode(url.getShortCode())
-                .from(from)
-                .to(to)
+                .from(context.from())
+                .to(context.to())
                 .points(points)
                 .build();
     }
@@ -308,13 +301,14 @@ public class AnalyticsService {
 
     public UrlAnalyticsDashboardResponse getDashboard(
             String shortCode,
-            Instant from,
-            Instant to,
-            int limit,
-            String timezone
+            AnalyticsContext context,
+            int limit
     ) {
 
-        validateTimeRange(from, to);
+        validateDailyTimeRange(
+                context.from(),
+                context.to()
+        );
 
         validateLimit(limit);
 
@@ -322,22 +316,22 @@ public class AnalyticsService {
                 getUrlAnalytics(shortCode);
 
         UrlAnalyticsRangeResponse range =
-                getUrlAnalytics(shortCode, from, to);
+                getUrlAnalytics(
+                        shortCode,
+                        context.from(),
+                        context.to()
+                );
 
         UrlAnalyticsTimeSeriesResponse timeSeries =
                 getUrlAnalyticsTimeSeries(
                         shortCode,
-                        from,
-                        to,
-                        timezone
+                        context
                 );
 
         UrlAnalyticsHourlyResponse hourly =
                 getUrlAnalyticsHourly(
                         shortCode,
-                        from,
-                        to,
-                        timezone
+                        context
                 );
 
         UrlAnalyticsReferrerResponse referrers =
