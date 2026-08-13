@@ -288,6 +288,73 @@ public class AnalyticsService {
                 .build();
     }
 
+    public UrlAnalyticsDashboardResponse getDashboard(
+            String shortCode,
+            Instant from,
+            Instant to,
+            int limit
+    ) {
+
+        validateTimeRange(from, to);
+
+        validateLimit(limit);
+
+        UrlAnalyticsResponse overview =
+                getUrlAnalytics(shortCode);
+
+        UrlAnalyticsRangeResponse range =
+                getUrlAnalytics(shortCode, from, to);
+
+        UrlAnalyticsTimeSeriesResponse timeSeries =
+                getUrlAnalyticsTimeSeries(
+                        shortCode,
+                        from,
+                        to
+                );
+
+        UrlAnalyticsHourlyResponse hourly =
+                getUrlAnalyticsHourly(
+                        shortCode,
+                        from,
+                        to
+                );
+
+        UrlAnalyticsReferrerResponse referrers =
+                getUrlAnalyticsReferrers(
+                        shortCode,
+                        limit
+                );
+
+        UrlAnalyticsBrowserResponse browsers =
+                getUrlAnalyticsBrowsers(
+                        shortCode,
+                        limit
+                );
+
+        UrlAnalyticsOperatingSystemResponse operatingSystems =
+                getUrlAnalyticsOperatingSystems(
+                        shortCode,
+                        limit
+                );
+
+        UrlAnalyticsDeviceResponse devices =
+                getUrlAnalyticsDevices(
+                        shortCode,
+                        limit
+                );
+
+        return UrlAnalyticsDashboardResponse.builder()
+                .overview(overview)
+                .range(range)
+                .timeSeries(timeSeries)
+                .hourly(hourly)
+                .referrers(referrers)
+                .browsers(browsers)
+                .operatingSystems(operatingSystems)
+                .devices(devices)
+                .build();
+    }
+
     private void validateTimeRange(
             Instant from,
             Instant to
