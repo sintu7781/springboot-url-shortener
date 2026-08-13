@@ -132,4 +132,21 @@ public interface UrlClickRepository
             @Param("urlId") Long urlId,
             @Param("limit") int limit
     );
+
+    @Query(value = """
+            SELECT
+                c.device_type AS deviceType,
+                COUNT(*) AS clicks
+            FROM url_clicks c
+            WHERE c.url_id = :urlId
+            AND c.device_type IS NOT NULL
+            AND c.device_type <> ''
+            GROUP BY c.device_type
+            ORDER BY clicks DESC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<ClickDeviceProjection> findTopDeviceTypes(
+            @Param("urlId") Long urlId,
+            @Param("limit") int limit
+    );
 }
