@@ -2,7 +2,9 @@ package io.github.sintu7781.urlshortener.controller.admin;
 
 import io.github.sintu7781.urlshortener.common.response.ApiResponse;
 import io.github.sintu7781.urlshortener.dto.response.*;
+import io.github.sintu7781.urlshortener.service.analytics.AnalyticsContext;
 import io.github.sintu7781.urlshortener.service.analytics.AnalyticsService;
+import io.github.sintu7781.urlshortener.service.analytics.AnalyticsTimeZoneService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +18,7 @@ import java.time.Instant;
 public class AnalyticsController {
 
     private final AnalyticsService analyticsService;
+    private final AnalyticsTimeZoneService analyticsTimeZoneService;
 
     @GetMapping("/{shortCode}")
     public ResponseEntity<ApiResponse<UrlAnalyticsResponse>> getUrlAnalytics(
@@ -69,12 +72,17 @@ public class AnalyticsController {
             @RequestParam(defaultValue = "UTC") String timezone
     ) {
 
-        UrlAnalyticsTimeSeriesResponse result =
-                analyticsService.getUrlAnalyticsTimeSeries(
-                        shortCode,
+        AnalyticsContext context =
+                analyticsTimeZoneService.createContext(
                         from,
                         to,
                         timezone
+                );
+
+        UrlAnalyticsTimeSeriesResponse result =
+                analyticsService.getUrlAnalyticsTimeSeries(
+                        shortCode,
+                        context
                 );
 
         return ResponseEntity.status(HttpStatus.OK)
@@ -98,12 +106,17 @@ public class AnalyticsController {
             @RequestParam(defaultValue = "UTC") String timezone
     ) {
 
-        UrlAnalyticsHourlyResponse result =
-                analyticsService.getUrlAnalyticsHourly(
-                        shortCode,
+        AnalyticsContext context =
+                analyticsTimeZoneService.createContext(
                         from,
                         to,
                         timezone
+                );
+
+        UrlAnalyticsHourlyResponse result =
+                analyticsService.getUrlAnalyticsHourly(
+                        shortCode,
+                        context
                 );
 
         return ResponseEntity.status(HttpStatus.OK)
@@ -253,13 +266,18 @@ public class AnalyticsController {
             @RequestParam(defaultValue = "UTC") String timezone
     ) {
 
+        AnalyticsContext context =
+                analyticsTimeZoneService.createContext(
+                        from,
+                        to,
+                        timezone
+                );
+
         UrlAnalyticsDashboardResponse result =
                 analyticsService.getDashboard(
                         shortCode,
-                        from,
-                        to,
-                        limit,
-                        timezone
+                        context,
+                        limit
                 );
 
         return ResponseEntity.status(HttpStatus.OK)
