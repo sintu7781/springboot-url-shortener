@@ -239,4 +239,33 @@ public class AnalyticsController {
                                 .build()
                 );
     }
+
+    @GetMapping("/{shortCode}/dashboard")
+    public  ResponseEntity<ApiResponse<UrlAnalyticsDashboardResponse>> getDashboard(
+            @PathVariable String shortCode,
+            @RequestParam Instant from,
+            @RequestParam Instant to,
+            @RequestParam(defaultValue = "10") int limit
+    ) {
+
+        UrlAnalyticsDashboardResponse result =
+                analyticsService.getDashboard(
+                        shortCode,
+                        from,
+                        to,
+                        limit
+                );
+
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(
+                        ApiResponse.<UrlAnalyticsDashboardResponse>builder()
+                                .success(true)
+                                .message(
+                                        "URL analytics dashboard fetched successfully."
+                                )
+                                .data(result)
+                                .timestamp(Instant.now())
+                                .build()
+                );
+    }
 }
