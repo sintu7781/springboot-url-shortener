@@ -1,5 +1,6 @@
 package io.github.sintu7781.urlshortener.service.analytics;
 
+import io.github.sintu7781.urlshortener.common.exception.UrlNotFoundException;
 import io.github.sintu7781.urlshortener.dto.response.*;
 import io.github.sintu7781.urlshortener.entity.Url;
 import io.github.sintu7781.urlshortener.repository.UrlClickRepository;
@@ -19,15 +20,15 @@ public class AnalyticsService {
 
     private static final long MAX_DAILY_RANGE_DAYS = 365;
 
+    private static final long MAX_DASHBOARD_RANGE_DAYS = 31;
+
     private final UrlRepository urlRepository;
 
     private final UrlClickRepository urlClickRepository;
 
-    public UrlAnalyticsResponse getUrlAnalytics(
-            String shortCode
+    private UrlAnalyticsResponse getUrlAnalytics(
+            Url url
     ) {
-
-        Url url = findUrl(shortCode);
 
         long totalClicks =
                 urlClickRepository.countByUrlId(
@@ -45,15 +46,20 @@ public class AnalyticsService {
                 .build();
     }
 
-    public UrlAnalyticsRangeResponse getUrlAnalytics(
-            String shortCode,
+    public UrlAnalyticsResponse getUrlAnalytics(
+            String shortCode
+    ) {
+
+        Url url = findUrl(shortCode);
+
+        return getUrlAnalytics(url);
+    }
+
+    private UrlAnalyticsRangeResponse getUrlAnalytics(
+            Url url,
             Instant from,
             Instant to
     ) {
-
-        validateTimeRange(from, to);
-
-        Url url = findUrl(shortCode);
 
         long clicks =
                 urlClickRepository
@@ -71,17 +77,27 @@ public class AnalyticsService {
                 .build();
     }
 
-    public UrlAnalyticsTimeSeriesResponse getUrlAnalyticsTimeSeries(
+    public UrlAnalyticsRangeResponse getUrlAnalytics(
             String shortCode,
-            AnalyticsContext context
+            Instant from,
+            Instant to
     ) {
 
-        validateDailyTimeRange(
-                context.from(),
-                context.to()
-        );
+        validateTimeRange(from, to);
 
         Url url = findUrl(shortCode);
+
+        return getUrlAnalytics(
+                url,
+                from,
+                to
+        );
+    }
+
+    private UrlAnalyticsTimeSeriesResponse getUrlAnalyticsTimeSeries(
+            Url url,
+            AnalyticsContext context
+    ) {
 
         List<ClickTimeSeriesPoint> points =
                 urlClickRepository
@@ -108,17 +124,28 @@ public class AnalyticsService {
                 .build();
     }
 
-    public UrlAnalyticsHourlyResponse getUrlAnalyticsHourly(
+    public UrlAnalyticsTimeSeriesResponse getUrlAnalyticsTimeSeries(
             String shortCode,
             AnalyticsContext context
     ) {
 
-        validateHourlyTimeRange(
+        validateDailyTimeRange(
                 context.from(),
                 context.to()
         );
 
         Url url = findUrl(shortCode);
+
+        return getUrlAnalyticsTimeSeries(
+                url,
+                context
+        );
+    }
+
+    private UrlAnalyticsHourlyResponse getUrlAnalyticsHourly(
+            Url url,
+            AnalyticsContext context
+    ) {
 
         List<ClickHourlyTimeSeriesPoint> points =
                 urlClickRepository
@@ -145,14 +172,28 @@ public class AnalyticsService {
                 .build();
     }
 
-    public UrlAnalyticsReferrerResponse getUrlAnalyticsReferrers(
+    public UrlAnalyticsHourlyResponse getUrlAnalyticsHourly(
             String shortCode,
-            int limit
+            AnalyticsContext context
     ) {
 
-        validateLimit(limit);
+        validateHourlyTimeRange(
+                context.from(),
+                context.to()
+        );
 
         Url url = findUrl(shortCode);
+
+        return getUrlAnalyticsHourly(
+                url,
+                context
+        );
+    }
+
+    private UrlAnalyticsReferrerResponse getUrlAnalyticsReferrers(
+            Url url,
+            int limit
+    ) {
 
         List<ClickReferrerPoint> referrers =
                 urlClickRepository
@@ -175,7 +216,7 @@ public class AnalyticsService {
                 .build();
     }
 
-    public UrlAnalyticsUserAgentResponse getUrlAnalyticsUserAgents(
+    public UrlAnalyticsReferrerResponse getUrlAnalyticsReferrers(
             String shortCode,
             int limit
     ) {
@@ -183,6 +224,17 @@ public class AnalyticsService {
         validateLimit(limit);
 
         Url url = findUrl(shortCode);
+
+        return getUrlAnalyticsReferrers(
+                url,
+                limit
+        );
+    }
+
+    public UrlAnalyticsUserAgentResponse getUrlAnalyticsUserAgents(
+            Url url,
+            int limit
+    ) {
 
         List<ClickUserAgentPoint> userAgents =
                 urlClickRepository
@@ -205,7 +257,7 @@ public class AnalyticsService {
                 .build();
     }
 
-    public UrlAnalyticsBrowserResponse getUrlAnalyticsBrowsers(
+    public UrlAnalyticsUserAgentResponse getUrlAnalyticsUserAgents(
             String shortCode,
             int limit
     ) {
@@ -213,6 +265,17 @@ public class AnalyticsService {
         validateLimit(limit);
 
         Url url = findUrl(shortCode);
+
+        return getUrlAnalyticsUserAgents(
+                url,
+                limit
+        );
+    }
+
+    private UrlAnalyticsBrowserResponse getUrlAnalyticsBrowsers(
+            Url url,
+            int limit
+    ) {
 
         List<ClickBrowserPoint> browsers =
                 urlClickRepository
@@ -235,7 +298,7 @@ public class AnalyticsService {
                 .build();
     }
 
-    public UrlAnalyticsOperatingSystemResponse getUrlAnalyticsOperatingSystems(
+    public UrlAnalyticsBrowserResponse getUrlAnalyticsBrowsers(
             String shortCode,
             int limit
     ) {
@@ -243,6 +306,17 @@ public class AnalyticsService {
         validateLimit(limit);
 
         Url url = findUrl(shortCode);
+
+        return getUrlAnalyticsBrowsers(
+                url,
+                limit
+        );
+    }
+
+    private UrlAnalyticsOperatingSystemResponse getUrlAnalyticsOperatingSystems(
+            Url url,
+            int limit
+    ) {
 
         List<ClickOperatingSystemPoint> operatingSystems =
                 urlClickRepository
@@ -267,7 +341,7 @@ public class AnalyticsService {
                 .build();
     }
 
-    public UrlAnalyticsDeviceResponse getUrlAnalyticsDevices(
+    public UrlAnalyticsOperatingSystemResponse getUrlAnalyticsOperatingSystems(
             String shortCode,
             int limit
     ) {
@@ -275,6 +349,17 @@ public class AnalyticsService {
         validateLimit(limit);
 
         Url url = findUrl(shortCode);
+
+        return getUrlAnalyticsOperatingSystems(
+                url,
+                limit
+        );
+    }
+
+    private UrlAnalyticsDeviceResponse getUrlAnalyticsDevices(
+            Url url,
+            int limit
+    ) {
 
         List<ClickDevicePoint> devices =
                 urlClickRepository
@@ -299,62 +384,85 @@ public class AnalyticsService {
                 .build();
     }
 
+    public UrlAnalyticsDeviceResponse getUrlAnalyticsDevices(
+            String shortCode,
+            int limit
+    ) {
+
+        validateLimit(limit);
+
+        Url url = findUrl(shortCode);
+
+        return getUrlAnalyticsDevices(
+                url,
+                limit
+        );
+    }
+
     public UrlAnalyticsDashboardResponse getDashboard(
             String shortCode,
             AnalyticsContext context,
             int limit
     ) {
 
-        validateDailyTimeRange(
+        validateDashboardTimeRange(
                 context.from(),
                 context.to()
         );
 
         validateLimit(limit);
 
+        Url url = findUrl(shortCode);
+
         UrlAnalyticsResponse overview =
-                getUrlAnalytics(shortCode);
+                getUrlAnalytics(url);
 
         UrlAnalyticsRangeResponse range =
                 getUrlAnalytics(
-                        shortCode,
+                        url,
                         context.from(),
                         context.to()
                 );
 
         UrlAnalyticsTimeSeriesResponse timeSeries =
                 getUrlAnalyticsTimeSeries(
-                        shortCode,
+                        url,
                         context
                 );
 
         UrlAnalyticsHourlyResponse hourly =
                 getUrlAnalyticsHourly(
-                        shortCode,
+                        url,
                         context
                 );
 
         UrlAnalyticsReferrerResponse referrers =
                 getUrlAnalyticsReferrers(
-                        shortCode,
+                        url,
+                        limit
+                );
+
+        UrlAnalyticsUserAgentResponse userAgents =
+                getUrlAnalyticsUserAgents(
+                        url,
                         limit
                 );
 
         UrlAnalyticsBrowserResponse browsers =
                 getUrlAnalyticsBrowsers(
-                        shortCode,
+                        url,
                         limit
                 );
 
         UrlAnalyticsOperatingSystemResponse operatingSystems =
                 getUrlAnalyticsOperatingSystems(
-                        shortCode,
+                        url,
                         limit
                 );
 
         UrlAnalyticsDeviceResponse devices =
                 getUrlAnalyticsDevices(
-                        shortCode,
+                        url,
                         limit
                 );
 
@@ -364,6 +472,7 @@ public class AnalyticsService {
                 .timeSeries(timeSeries)
                 .hourly(hourly)
                 .referrers(referrers)
+                .userAgents(userAgents)
                 .browsers(browsers)
                 .operatingSystems(operatingSystems)
                 .devices(devices)
@@ -426,12 +535,32 @@ public class AnalyticsService {
         }
     }
 
+    private void validateDashboardTimeRange(
+            Instant from,
+            Instant to
+    ) {
+
+        validateTimeRange(from, to);
+
+        if(Duration.between(from, to).toDays()
+                > MAX_DASHBOARD_RANGE_DAYS) {
+
+            throw new IllegalArgumentException(
+                    "Dashboard analytics range cannot exceed "
+                            + MAX_DASHBOARD_RANGE_DAYS
+                            + " days."
+            );
+        }
+    }
+
     private Url findUrl(String shortCode) {
+
+        validateShortCode(shortCode);
 
         return urlRepository
                 .findByShortCode(shortCode)
                 .orElseThrow(() ->
-                        new IllegalArgumentException(
+                        new UrlNotFoundException(
                                 "URL not found: " + shortCode
                         )
                 );
@@ -446,5 +575,15 @@ public class AnalyticsService {
             );
         }
 
+    }
+
+    private void validateShortCode(String shortCode) {
+
+        if(shortCode == null || shortCode.isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Short code must not be blank."
+            );
+        }
     }
 }
