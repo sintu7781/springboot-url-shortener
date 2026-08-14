@@ -14,6 +14,7 @@ import io.github.sintu7781.urlshortener.service.analytics.ClickEventPublisher;
 import io.github.sintu7781.urlshortener.service.cache.UrlCacheService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +24,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UrlServiceImpl implements UrlService {
@@ -131,7 +133,19 @@ public class UrlServiceImpl implements UrlService {
                 .clickedAt(Instant.now())
                 .build();
 
-        clickEventPublisher.publish(event);
+        try {
+
+            clickEventPublisher.publish(event);
+
+        } catch (Exception ex) {
+
+            log.warn(
+                    "Failed to publish click event. shortCode={}, eventId={}",
+                    shortCode,
+                    event.eventId(),
+                    ex
+            );
+        }
     }
 
     @Transactional
@@ -187,7 +201,6 @@ public class UrlServiceImpl implements UrlService {
         return mapper.toResponse(savedUrl);
     }
 
-    @Transactional
     @Override
     public String getOriginalUrl(
             String shortCode,
