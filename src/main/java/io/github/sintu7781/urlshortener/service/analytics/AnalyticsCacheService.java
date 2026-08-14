@@ -3,13 +3,15 @@ package io.github.sintu7781.urlshortener.service.analytics;
 import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsDashboardResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.Cursor;
+import org.springframework.data.redis.core.ScanOptions;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
 @Service
@@ -130,12 +132,32 @@ public class AnalyticsCacheService {
                         + shortCode
                         + ":*";
 
-        var keys =
-                redisTemplate.keys(pattern);
+        try {
 
-        if(keys != null && !keys.isEmpty()) {
+            Set<String> keys = new HashSet<>();
 
-            redisTemplate.delete(keys);
+            try (Cursor<String> cursor =
+                    redisTemplate.scan(
+                            ScanOptions.scanOptions()
+                                    .match(pattern)
+                                    .count(100)
+                                    .build()
+                    )) {
+                cursor.forEachRemaining(keys::add);
+            }
+
+            if(!keys.isEmpty()) {
+
+                redisTemplate.delete(keys);
+            }
+
+        } catch (Exception ex) {
+
+            log.warn(
+                    "Failed to evict analytics dashboard cache. shortCode={}",
+                    shortCode,
+                    ex
+            );
         }
     }
 
