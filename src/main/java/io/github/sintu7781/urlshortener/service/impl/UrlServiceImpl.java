@@ -167,6 +167,13 @@ public class UrlServiceImpl implements UrlService {
                 .orElse(null);
 
         if(existing != null) {
+
+            urlCacheService.delete(
+                    existing.getShortCode()
+            );
+
+            cacheUrl(existing);
+
             return mapper.toResponse(existing);
         }
 
