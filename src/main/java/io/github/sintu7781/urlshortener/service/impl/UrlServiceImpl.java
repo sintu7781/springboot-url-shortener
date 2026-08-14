@@ -29,6 +29,12 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class UrlServiceImpl implements UrlService {
 
+    private static final String URL_NOT_FOUND =
+            "__NOT_FOUND__";
+
+    private static final Duration NEGATIVE_CACHE_TTL =
+            Duration.ofSeconds(15);
+
     private final UrlRepository urlRepository;
 
 //    private final IdGenerator idGenerator;
@@ -196,6 +202,10 @@ public class UrlServiceImpl implements UrlService {
 
         Url savedUrl = urlRepository.save(url);
 
+        urlCacheService.delete(
+                savedUrl.getShortCode()
+        );
+
         cacheUrl(savedUrl);
 
         return mapper.toResponse(savedUrl);
@@ -211,6 +221,13 @@ public class UrlServiceImpl implements UrlService {
 
         if(cachedUrl != null) {
 
+            if(URL_NOT_FOUND.equals(cachedUrl)) {
+
+                throw new UrlNotFoundException(
+                        "Short URL not found"
+                );
+            }
+
             recordClick(shortCode, request);
 
             clickCounterService.increment(shortCode);
@@ -219,11 +236,20 @@ public class UrlServiceImpl implements UrlService {
         }
 
         Url url = urlRepository.findByShortCode(shortCode)
-                .orElseThrow(() ->
-                        new UrlNotFoundException(
-                                "Short URL not found"
-                        )
-                );
+                .orElse(null);
+
+        if(url == null) {
+
+            urlCacheService.put(
+                    shortCode,
+                    URL_NOT_FOUND,
+                    NEGATIVE_CACHE_TTL
+            );
+
+            throw new UrlNotFoundException(
+                    "Short URL not found"
+            );
+        }
 
         if(!url.isActive()) {
             throw new UrlNotFoundException(
