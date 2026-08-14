@@ -1,12 +1,14 @@
 package io.github.sintu7781.urlshortener.service.analytics;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ClickCounterService {
@@ -31,10 +33,22 @@ public class ClickCounterService {
 
     public long increment(String shortCode) {
 
-        Long count = redisTemplate.opsForValue()
-                .increment(buildKey(shortCode));
+        try {
 
-        return count != null ? count : 0L;
+            Long count = redisTemplate.opsForValue()
+                    .increment(buildKey(shortCode));
+
+            return count != null ? count : 0L;
+        } catch (Exception ex) {
+
+            log.warn(
+                    "Failed to increment click counter. shortCode={}",
+                    shortCode,
+                    ex
+            );
+
+            return 0L;
+        }
     }
 
     public long get(String shortCode) {
