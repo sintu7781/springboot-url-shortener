@@ -1,6 +1,7 @@
 package io.github.sintu7781.urlshortener.service.analytics;
 
 import io.github.sintu7781.urlshortener.dto.response.UrlAnalyticsDashboardResponse;
+import io.micrometer.core.instrument.Timer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.Cursor;
@@ -41,6 +42,8 @@ public class AnalyticsCacheService {
 
     private final ObjectMapper objectMapper;
 
+    private final AnalyticsMetrics analyticsMetrics;
+
     public Optional<UrlAnalyticsDashboardResponse> getDashboard(
             String shortCode,
             Instant from,
@@ -62,6 +65,8 @@ public class AnalyticsCacheService {
 
         if(cachedValue == null || cachedValue.isBlank()) {
 
+            analyticsMetrics.recordCacheMiss();
+
             log.debug(
                     "Analytics dashboard cache miss. key={}",
                     key
@@ -71,6 +76,8 @@ public class AnalyticsCacheService {
         }
 
         try {
+
+            analyticsMetrics.recordCacheHit();
 
             log.debug(
                     "Analytics dashboard cache hit. key={}",
@@ -84,6 +91,8 @@ public class AnalyticsCacheService {
                     )
             );
         } catch (Exception ex) {
+
+            analyticsMetrics.recordCacheError();
 
             log.warn(
                     "Invalid analytics cache entry. key={}",
@@ -126,6 +135,8 @@ public class AnalyticsCacheService {
             );
         } catch (Exception ex) {
 
+            analyticsMetrics.recordCacheError();
+
             log.warn(
                     "Failed to cache analytics dashboard. shortCode={}, from={}, to={}, timezone={}, limit={}",
                     shortCode,
@@ -162,6 +173,8 @@ public class AnalyticsCacheService {
             if(!keys.isEmpty()) {
 
                 redisTemplate.delete(keys);
+
+                analyticsMetrics.recordCacheEviction();
             }
 
         } catch (Exception ex) {
@@ -205,7 +218,8 @@ public class AnalyticsCacheService {
                 limit
         );
 
-        String lockToken = UUID.randomUUID().toString();
+        String lockToken =
+                UUID.randomUUID().toString();
 
         boolean acquired = false;
 
@@ -233,7 +247,7 @@ public class AnalyticsCacheService {
                 }
 
                 UrlAnalyticsDashboardResponse result =
-                        loader.get();
+                        loadAndMeasure(loader);
 
                 putDashboard(
                         shortCode,
@@ -271,7 +285,7 @@ public class AnalyticsCacheService {
             }
 
             UrlAnalyticsDashboardResponse result =
-                    loader.get();
+                    loadAndMeasure(loader);
 
             putDashboard(
                     shortCode,
@@ -302,6 +316,16 @@ public class AnalyticsCacheService {
                 );
             }
         }
+    }
+
+    private UrlAnalyticsDashboardResponse loadAndMeasure(
+            Supplier<UrlAnalyticsDashboardResponse> loader
+    ) {
+
+        Timer timer =
+                analyticsMetrics.dashboardBuilderTimer();
+
+        return timer.record(loader);
     }
 
     private boolean acquireLock(
