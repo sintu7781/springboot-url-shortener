@@ -401,35 +401,11 @@ public class AnalyticsService {
         );
     }
 
-    public UrlAnalyticsDashboardResponse getDashboard(
+    private UrlAnalyticsDashboardResponse buildDashboard(
             String shortCode,
             AnalyticsContext context,
             int limit
     ) {
-
-        validateDashboardTimeRange(
-                context.from(),
-                context.to()
-        );
-
-        validateLimit(limit);
-
-        String timezone =
-                context.timezone().getId();
-
-        var cachedDashboard =
-                analyticsCacheService.getDashboard(
-                        shortCode,
-                        context.from(),
-                        context.to(),
-                        timezone,
-                        limit
-                );
-
-        if(cachedDashboard.isPresent()) {
-
-            return cachedDashboard.get();
-        }
 
         Url url = findUrl(shortCode);
 
@@ -485,8 +461,7 @@ public class AnalyticsService {
                         limit
                 );
 
-        UrlAnalyticsDashboardResponse dashboard =
-                UrlAnalyticsDashboardResponse.builder()
+        return UrlAnalyticsDashboardResponse.builder()
                 .overview(overview)
                 .range(range)
                 .timeSeries(timeSeries)
@@ -497,17 +472,39 @@ public class AnalyticsService {
                 .operatingSystems(operatingSystems)
                 .devices(devices)
                 .build();
+    }
 
-        analyticsCacheService.putDashboard(
-                shortCode,
+    public UrlAnalyticsDashboardResponse getDashboard(
+            String shortCode,
+            AnalyticsContext context,
+            int limit
+    ) {
+
+        validateDashboardTimeRange(
                 context.from(),
-                context.to(),
-                timezone,
-                limit,
-                dashboard
+                context.to()
         );
 
-        return dashboard;
+        validateLimit(limit);
+
+        String timezone =
+                context.timezone().getId();
+
+        return analyticsCacheService
+                .getDashboardWithLock(
+                        shortCode,
+                        context.from(),
+                        context.to(),
+                        timezone,
+                        limit,
+                        () -> buildDashboard(
+                                shortCode,
+                                context,
+                                limit
+                        )
+                )
+                .orElseThrow();
+
     }
 
     private void validateTimeRange(
