@@ -55,7 +55,7 @@ public class UrlServiceImpl implements UrlService {
             String schema = uri.getScheme();
 
             if(schema == null ||
-            uri.getHost() == null ||
+                    uri.getHost() == null ||
                     (!schema.equalsIgnoreCase("http")
                     && !schema.equalsIgnoreCase("https"))) {
 
@@ -84,28 +84,40 @@ public class UrlServiceImpl implements UrlService {
 
     private void cacheUrl(Url url) {
 
-        if(url.getExpiresAt() == null) {
+        try {
 
-            urlCacheService.put(
+            if (url.getExpiresAt() == null) {
+
+                urlCacheService.put(
+                        url.getShortCode(),
+                        url.getOriginalUrl(),
+                        null
+                );
+
+                return;
+            }
+
+            Duration ttl =
+                    Duration.between(
+                            LocalDateTime.now(),
+                            url.getExpiresAt()
+                    );
+
+            if (!ttl.isNegative() &&
+                    !ttl.isZero()) {
+
+                urlCacheService.put(
+                        url.getShortCode(),
+                        url.getOriginalUrl(),
+                        ttl
+                );
+            }
+        } catch (Exception ex) {
+
+            log.warn(
+                    "Failed to cache URL. shortCode={}",
                     url.getShortCode(),
-                    url.getOriginalUrl(),
-                    null
-            );
-
-            return;
-        }
-
-        Duration ttl = Duration.between(
-                LocalDateTime.now(),
-                url.getExpiresAt()
-        );
-
-        if(!ttl.isNegative() && !ttl.isZero()) {
-
-            urlCacheService.put(
-                    url.getShortCode(),
-                    url.getOriginalUrl(),
-                    ttl
+                    ex
             );
         }
     }
@@ -224,7 +236,21 @@ public class UrlServiceImpl implements UrlService {
             HttpServletRequest request
     ) {
 
-        String cachedUrl = urlCacheService.get(shortCode);
+        String cachedUrl = null;
+
+        try {
+
+            cachedUrl =
+                    urlCacheService.get(shortCode);
+
+        } catch (Exception ex) {
+
+            log.warn(
+                    "URL cache unavailable. Falling back to database. shortCode={}",
+                    shortCode,
+                    ex
+            );
+        }
 
         if(cachedUrl != null) {
 
@@ -235,7 +261,10 @@ public class UrlServiceImpl implements UrlService {
                 );
             }
 
-            recordClick(shortCode, request);
+            recordClick(
+                    shortCode,
+                    request
+            );
 
             clickCounterService.increment(shortCode);
 
@@ -247,11 +276,21 @@ public class UrlServiceImpl implements UrlService {
 
         if(url == null) {
 
-            urlCacheService.put(
-                    shortCode,
-                    URL_NOT_FOUND,
-                    NEGATIVE_CACHE_TTL
-            );
+            try {
+
+                urlCacheService.put(
+                        shortCode,
+                        URL_NOT_FOUND,
+                        NEGATIVE_CACHE_TTL
+                );
+            } catch (Exception ex) {
+
+                log.warn(
+                        "Failed to cache negative URL lookup. shortCode={}",
+                        shortCode,
+                        ex
+                );
+            }
 
             throw new UrlNotFoundException(
                     "Short URL not found"
