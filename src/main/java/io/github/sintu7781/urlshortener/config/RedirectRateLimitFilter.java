@@ -1,19 +1,24 @@
 package io.github.sintu7781.urlshortener.config;
 
+import io.github.sintu7781.urlshortener.common.response.ErrorResponse;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.ObjectMapper;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.time.Instant;
 
 @Slf4j
 @Component
@@ -25,6 +30,8 @@ public class RedirectRateLimitFilter
             "rate-limit:redirect:";
 
     private final StringRedisTemplate redisTemplate;
+
+    private final ObjectMapper objectMapper;
 
     @Value("${rate-limit.redirect.max-requests:1000}")
     private long maxRequests;
@@ -72,8 +79,33 @@ public class RedirectRateLimitFilter
             if (count != null &&
                     count > maxRequests) {
 
+                String traceId =
+                        MDC.get(
+                                TraceIdFilter.MDC_TRACE_ID
+                        );
+
+                ErrorResponse error =
+                        ErrorResponse.builder()
+                                        .status(
+                                                HttpStatus.TOO_MANY_REQUESTS.value()
+                                        )
+                                        .error(
+                                                HttpStatus.TOO_MANY_REQUESTS
+                                                        .getReasonPhrase()
+                                        )
+                                        .message(
+                                                "Too many redirect requests."
+                                        )
+                                        .timestamp(Instant.now())
+                                        .traceId(traceId)
+                                        .build();
+
                 response.setStatus(
                         HttpStatus.TOO_MANY_REQUESTS.value()
+                );
+
+                response.setContentType(
+                        MediaType.APPLICATION_JSON_VALUE
                 );
 
                 response.setHeader(
@@ -82,6 +114,12 @@ public class RedirectRateLimitFilter
                                 windowSeconds
                         )
                 );
+
+                objectMapper
+                        .writeValue(
+                                response.getWriter(),
+                                error
+                        );
 
                 return;
             }
