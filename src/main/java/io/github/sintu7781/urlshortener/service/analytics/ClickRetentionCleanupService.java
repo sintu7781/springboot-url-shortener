@@ -1,9 +1,10 @@
 package io.github.sintu7781.urlshortener.service.analytics;
 
+import io.github.sintu7781.urlshortener.config.AnalyticsRetentionProperties;
 import io.github.sintu7781.urlshortener.repository.UrlClickRepository;
-import lombok.RequiredArgsConstructor;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,17 +12,34 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
 @Service
-@RequiredArgsConstructor
 @Slf4j
 public class ClickRetentionCleanupService {
 
     private final UrlClickRepository urlClickRepository;
 
-    @Value("${analytics.retention.click-days:90}")
-    private long retentionDays;
+    private final Counter deletedClicksCounter;
 
-    @Value("${analytics.retention.cleanup-batch-size:10000}")
-    private int batchSize;
+    private final AnalyticsRetentionProperties retentionProperties;
+
+    public ClickRetentionCleanupService(
+            UrlClickRepository urlClickRepository,
+            MeterRegistry meterRegistry,
+            AnalyticsRetentionProperties retentionProperties
+    ) {
+
+        this.urlClickRepository = urlClickRepository;
+
+        this.retentionProperties = retentionProperties;
+
+        this.deletedClicksCounter =
+                Counter.builder(
+                        "analytics.click.retention.deleted"
+                )
+                .description(
+                        "Number of click events deleted by retention cleanup"
+                )
+                .register(meterRegistry);
+    }
 
     @Transactional
     public int cleanupBatch() {
@@ -29,21 +47,26 @@ public class ClickRetentionCleanupService {
         Instant cutoff =
                 Instant.now()
                         .minus(
-                                retentionDays,
+                                retentionProperties.clickDays(),
                                 ChronoUnit.DAYS
                         );
 
         int deleted =
                 urlClickRepository.deleteExpiredClicksBatch(
                         cutoff,
-                        batchSize
+                        retentionProperties.cleanupBatchSize()
                 );
+
+        if(deleted > 0) {
+
+            deletedClicksCounter.increment(deleted);
+        }
 
         log.info(
                 "Click retention cleanup completed. cutoff={}, deleted={}, batchSize={}",
                 cutoff,
                 deleted,
-                batchSize
+                retentionProperties.cleanupBatchSize()
         );
 
         return deleted;
@@ -54,7 +77,7 @@ public class ClickRetentionCleanupService {
         Instant cutoff =
                 Instant.now()
                         .minus(
-                                retentionDays,
+                                retentionProperties.clickDays(),
                                 ChronoUnit.DAYS
                         );
 
