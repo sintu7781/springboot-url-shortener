@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
@@ -23,12 +24,13 @@ public class RedirectRateLimitFilter
     private static final String KEY_PREFIX =
             "rate-limit:redirect:";
 
-    private static final long MAX_REQUESTS = 1000L;
-
-    private static final Duration WINDOW =
-            Duration.ofMinutes(1);
-
     private final StringRedisTemplate redisTemplate;
+
+    @Value("${rate-limit.redirect.max-requests:1000}")
+    private long maxRequests;
+
+    @Value("${rate-limit.redirect.window-seconds:60}")
+    private long windowSeconds;
 
     @Override
     protected void doFilterInternal(
@@ -63,12 +65,12 @@ public class RedirectRateLimitFilter
 
                 redisTemplate.expire(
                         key,
-                        WINDOW
+                        Duration.ofSeconds(windowSeconds)
                 );
             }
 
             if (count != null &&
-                    count > MAX_REQUESTS) {
+                    count > maxRequests) {
 
                 response.setStatus(
                         HttpStatus.TOO_MANY_REQUESTS.value()
@@ -76,7 +78,9 @@ public class RedirectRateLimitFilter
 
                 response.setHeader(
                         "Retry-After",
-                        String.valueOf(WINDOW.toSeconds())
+                        String.valueOf(
+                                windowSeconds
+                        )
                 );
 
                 return;
