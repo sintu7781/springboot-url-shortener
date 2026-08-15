@@ -1,7 +1,9 @@
 package io.github.sintu7781.urlshortener.common.exception;
 
 import io.github.sintu7781.urlshortener.common.response.ErrorResponse;
+import io.github.sintu7781.urlshortener.config.TraceIdFilter;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -157,7 +159,8 @@ public class GlobalExceptionHandler {
     ) {
 
         log.error(
-                "Unhandled exception occurred",
+                "Unhandled exception occurred. traceId={}",
+                MDC.get(TraceIdFilter.MDC_TRACE_ID),
                 ex
         );
 
@@ -172,16 +175,22 @@ public class GlobalExceptionHandler {
             String message
     ) {
 
-        ErrorResponse response = ErrorResponse.builder()
-                .status(status.value())
-                .error(status.getReasonPhrase())
-                .message(
-                        message != null && !message.isBlank()
-                                ? message
-                                : status.getReasonPhrase()
-                )
-                .timestamp(Instant.now())
-                .build();
+        String traceId =
+                MDC.get(TraceIdFilter.MDC_TRACE_ID);
+
+        ErrorResponse response =
+                ErrorResponse.builder()
+                        .status(status.value())
+                        .error(status.getReasonPhrase())
+                        .message(
+                                message != null &&
+                                        !message.isBlank()
+                                        ? message
+                                        : status.getReasonPhrase()
+                        )
+                        .timestamp(Instant.now())
+                        .traceId(traceId)
+                        .build();
 
         return ResponseEntity
                 .status(status)
