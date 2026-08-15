@@ -3,6 +3,7 @@ package io.github.sintu7781.urlshortener.repository;
 import io.github.sintu7781.urlshortener.entity.UrlClick;
 import io.github.sintu7781.urlshortener.repository.projection.*;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -164,5 +165,14 @@ public interface UrlClickRepository
     List<ClickDeviceProjection> findTopDeviceTypes(
             @Param("urlId") Long urlId,
             @Param("limit") int limit
+    );
+
+    @Modifying
+    @Query("""
+            DELETE FROM UrlClick c
+            WHERE c.clickedAt < :cutoff
+            """)
+    int deleteClicksBefore(
+            @Param("cutoff") Instant cutoff
     );
 }
