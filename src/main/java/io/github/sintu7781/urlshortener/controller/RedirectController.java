@@ -17,7 +17,7 @@ public class RedirectController {
 
     private final UrlService urlService;
 
-    @GetMapping("/{shortCode}")
+    @GetMapping("/{shortCode:[A-Za-z0-9_-]{1,30}}")
     public ResponseEntity<Void> redirect(
             @PathVariable String shortCode,
             HttpServletRequest request
