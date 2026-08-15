@@ -85,7 +85,7 @@ public class ClickCountSyncScheduler {
 
         ScanOptions options =
                 ScanOptions.scanOptions()
-                        .match("click:*:sync:*")
+                        .match("clicks:*:sync:*")
                         .count(100)
                         .build();
 
@@ -143,7 +143,7 @@ public class ClickCountSyncScheduler {
             String rotatedKey
     ) {
 
-        String prefix = "click:";
+        String prefix = "clicks:";
 
         if(!rotatedKey.startsWith(prefix)) {
             return null;
