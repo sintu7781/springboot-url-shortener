@@ -60,47 +60,74 @@ public class AnalyticsCacheService {
                 limit
         );
 
-        String cachedValue =
-                redisTemplate.opsForValue().get(key);
-
-        if(cachedValue == null || cachedValue.isBlank()) {
-
-            analyticsMetrics.recordCacheMiss();
-
-            log.debug(
-                    "Analytics dashboard cache miss. key={}",
-                    key
-            );
-
-            return Optional.empty();
-        }
-
         try {
 
-            analyticsMetrics.recordCacheHit();
+            String cachedValue =
+                    redisTemplate.opsForValue().get(key);
 
-            log.debug(
-                    "Analytics dashboard cache hit. key={}",
-                    key
-            );
+            if (cachedValue == null || cachedValue.isBlank()) {
 
-            return Optional.of(
-                    objectMapper.readValue(
-                            cachedValue,
-                            UrlAnalyticsDashboardResponse.class
-                    )
-            );
+                analyticsMetrics.recordCacheMiss();
+
+                log.debug(
+                        "Analytics dashboard cache miss. key={}",
+                        key
+                );
+
+                return Optional.empty();
+            }
+
+            try {
+
+                UrlAnalyticsDashboardResponse response =
+                        objectMapper.readValue(
+                                cachedValue,
+                                UrlAnalyticsDashboardResponse.class
+                        );
+
+                analyticsMetrics.recordCacheHit();
+
+                log.debug(
+                        "Analytics dashboard cache hit. key={}",
+                        key
+                );
+
+                return Optional.of(response);
+
+            } catch (Exception ex) {
+
+                analyticsMetrics.recordCacheError();
+
+                log.warn(
+                        "Invalid analytics cache entry. key={}",
+                        key,
+                        ex
+                );
+
+                try {
+
+                    redisTemplate.delete(key);
+
+                } catch (Exception deleteEx) {
+
+                    log.debug(
+                            "Failed to delete invalid analytics cache entry. key={}",
+                            key,
+                            deleteEx
+                    );
+                }
+
+                return Optional.empty();
+            }
         } catch (Exception ex) {
 
             analyticsMetrics.recordCacheError();
 
             log.warn(
-                    "Invalid analytics cache entry. key={}",
+                    "Analytics dashboard cache unavailable. Treating as cache miss. key={}",
                     key,
                     ex
             );
-
-            redisTemplate.delete(key);
 
             return Optional.empty();
         }
@@ -333,14 +360,29 @@ public class AnalyticsCacheService {
             String lockToken
     ) {
 
-        Boolean acquired =
-                redisTemplate.opsForValue().setIfAbsent(
-                        lockKey,
-                        lockToken,
-                        LOCK_TTL
-                );
+        try {
 
-        return Boolean.TRUE.equals(acquired);
+            Boolean acquired =
+                    redisTemplate.opsForValue().setIfAbsent(
+                            lockKey,
+                            lockToken,
+                            LOCK_TTL
+                    );
+
+            return Boolean.TRUE.equals(acquired);
+
+        } catch (Exception ex) {
+
+            analyticsMetrics.recordCacheError();
+
+            log.warn(
+                    "Analytics cache lock unavailable. Continuing without cache lock. lockKey={}",
+                    lockKey,
+                    ex
+            );
+
+            return false;
+        }
     }
 
     private void releaseLock(
@@ -348,19 +390,31 @@ public class AnalyticsCacheService {
             String lockToken
     ) {
 
-        String script = """
-                if redis.call('GET', KEYS[1]) == ARGV[1] then
-                    return redis.call('DEL', KEYS[1])
-                else
-                    return 0
-                end
-                """;
+        try {
 
-        redisTemplate.execute(
-                RedisScript.of(script, Long.class),
-                List.of(lockKey),
-                lockToken
-        );
+            String script = """
+                    if redis.call('GET', KEYS[1]) == ARGV[1] then
+                        return redis.call('DEL', KEYS[1])
+                    else
+                        return 0
+                    end
+                    """;
+
+            redisTemplate.execute(
+                    RedisScript.of(script, Long.class),
+                    List.of(lockKey),
+                    lockToken
+            );
+        } catch (Exception ex) {
+
+            analyticsMetrics.recordCacheError();
+
+            log.warn(
+                    "Failed to release analytics cache lock. lockKey={}",
+                    lockKey,
+                    ex
+            );
+        }
     }
 
     private String buildKey(
