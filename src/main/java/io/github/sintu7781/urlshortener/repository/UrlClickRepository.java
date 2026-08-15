@@ -167,12 +167,28 @@ public interface UrlClickRepository
             @Param("limit") int limit
     );
 
-    @Modifying
     @Query("""
-            DELETE FROM UrlClick c
+            SELECT COUNT(c)
+            FROM UrlClick c
             WHERE c.clickedAt < :cutoff
             """)
-    int deleteClicksBefore(
+    long countClicksBefore(
             @Param("cutoff") Instant cutoff
+    );
+
+    @Modifying
+    @Query(value = """
+            DELETE FROM url_clicks
+            WHERE id IN (
+                SELECT id
+                FROM url_clicks
+                WHERE clicked_at < :cutoff
+                ORDER BY id
+                LIMIT :batchSize
+            )
+            """, nativeQuery = true)
+    int deleteExpiredClicksBatch(
+            @Param("cutoff") Instant cutoff,
+            @Param("batchSize") int batchSize
     );
 }
