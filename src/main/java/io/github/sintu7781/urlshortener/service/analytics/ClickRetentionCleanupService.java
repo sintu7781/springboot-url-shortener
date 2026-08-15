@@ -20,8 +20,11 @@ public class ClickRetentionCleanupService {
     @Value("${analytics.retention.click-days:90}")
     private long retentionDays;
 
+    @Value("${analytics.retention.cleanup-batch-size:10000}")
+    private int batchSize;
+
     @Transactional
-    public int cleanup() {
+    public int cleanupBatch() {
 
         Instant cutoff =
                 Instant.now()
@@ -31,16 +34,41 @@ public class ClickRetentionCleanupService {
                         );
 
         int deleted =
-                urlClickRepository.deleteClicksBefore(
+                urlClickRepository.deleteExpiredClicksBatch(
+                        cutoff,
+                        batchSize
+                );
+
+        log.info(
+                "Click retention cleanup completed. cutoff={}, deleted={}, batchSize={}",
+                cutoff,
+                deleted,
+                batchSize
+        );
+
+        return deleted;
+    }
+
+    public long countExpiredClicks() {
+
+        Instant cutoff =
+                Instant.now()
+                        .minus(
+                                retentionDays,
+                                ChronoUnit.DAYS
+                        );
+
+        long count =
+                urlClickRepository.countClicksBefore(
                         cutoff
                 );
 
         log.info(
-                "Click retention cleanup completed. cutoff={}, deleted={}",
+                "Click retention dry-run. cutoff={}, expiredClicks ={}",
                 cutoff,
-                deleted
+                count
         );
 
-        return deleted;
+        return count;
     }
 }
