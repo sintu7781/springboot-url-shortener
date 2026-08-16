@@ -10,6 +10,7 @@ import io.github.sintu7781.urlshortener.repository.UrlRepository;
 //import io.github.sintu7781.urlshortener.service.id.IdGenerator;
 import io.github.sintu7781.urlshortener.common.util.Base62Generator;
 import io.github.sintu7781.urlshortener.service.analytics.ClickCounterService;
+import io.github.sintu7781.urlshortener.service.analytics.ClickEventOutboxService;
 import io.github.sintu7781.urlshortener.service.analytics.ClickEventPublisher;
 import io.github.sintu7781.urlshortener.service.cache.UrlCacheService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,6 +47,8 @@ public class UrlServiceImpl implements UrlService {
     private final ClickCounterService clickCounterService;
 
     private final ClickEventPublisher clickEventPublisher;
+
+    private final ClickEventOutboxService clickEventOutboxService;
 
     private void validateUrl(String url) {
 
@@ -158,9 +161,13 @@ public class UrlServiceImpl implements UrlService {
         } catch (Exception ex) {
 
             log.warn(
-                    "Failed to publish click event. shortCode={}, eventId={}",
-                    shortCode,
+                    "Redis click-event publish failed. Storing event in PostgreSQL outbox. eventId={}",
                     event.eventId(),
+                    ex
+            );
+
+            clickEventOutboxService.saveFallback(
+                    event,
                     ex
             );
         }
