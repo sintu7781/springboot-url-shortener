@@ -16,6 +16,10 @@ public class AnalyticsMetrics {
 
     private final Counter cacheEvictions;
 
+    private final Counter clickOutboxRecovered;
+
+    private final Counter clickOutboxFailed;
+
     private final Timer dashboardBuilderTimer;
 
     public AnalyticsMetrics(
@@ -62,6 +66,26 @@ public class AnalyticsMetrics {
                         )
                         .register(meterRegistry);
 
+        this.clickOutboxRecovered =
+                Counter
+                        .builder(
+                                "analytics.click.outbox.recovered"
+                        )
+                        .description(
+                                "Number of click events successfully recovered from the PostgreSQL outbox"
+                        )
+                        .register(meterRegistry);
+
+        this.clickOutboxFailed =
+                Counter
+                        .builder(
+                                "analytics.click.outbox.failed"
+                        )
+                        .description(
+                                "Number of click events that failed during outbox recovery"
+                        )
+                        .register(meterRegistry);
+
         this.dashboardBuilderTimer =
                 Timer
                         .builder(
@@ -96,6 +120,16 @@ public class AnalyticsMetrics {
     public void recordCacheEviction() {
 
         cacheEvictions.increment();
+    }
+
+    public void recordClickOutboxRecovered() {
+
+        clickOutboxRecovered.increment();
+    }
+
+    public  void recordClickOutboxFailed() {
+
+        clickOutboxFailed.increment();
     }
 
     public Timer dashboardBuilderTimer() {
