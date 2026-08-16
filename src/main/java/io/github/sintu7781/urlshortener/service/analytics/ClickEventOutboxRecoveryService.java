@@ -26,6 +26,8 @@ public class ClickEventOutboxRecoveryService {
 
     private final ClickEventPublisher clickEventPublisher;
 
+    private final AnalyticsMetrics analyticsMetrics;
+
     @Transactional
     public int recoverBatch() {
 
@@ -62,6 +64,8 @@ public class ClickEventOutboxRecoveryService {
 
                 outbox.setLastError(null);
 
+                analyticsMetrics.recordClickOutboxRecovered();
+
                 recovered++;
 
             } catch (Exception ex) {
@@ -69,6 +73,8 @@ public class ClickEventOutboxRecoveryService {
                 outbox.setAttemptCount(
                         outbox.getAttemptCount() + 1
                 );
+
+                analyticsMetrics.recordClickOutboxFailed();
 
                 outbox.setLastError(
                         truncateError(ex)
