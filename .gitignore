@@ -39,7 +39,9 @@ out/
 ### Envirnoment / secrets ###
 .env
 .env.*
+.env.deploy
 !.env.example
+!.env.deploy.example
 
 ### backups ###
 /backups/*.dump
