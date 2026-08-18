@@ -25,6 +25,8 @@ FROM eclipse-temurin:25-jre
 
 WORKDIR /app
 
+LABEL org.opencontainers.image.source="https://github.com/sintu7781/springboot-url-shortener"
+
 RUN useradd --system --create-home --uid 10001 appuser
 
 COPY --from=build /app/build/libs/*.jar app.jar
