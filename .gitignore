@@ -35,3 +35,12 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Envirnoment / secrets ###
+.env
+.env.*
+!.env.example
+
+### backups ###
+/backups/*.dump
+/logs/
