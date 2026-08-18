@@ -1,10 +1,39 @@
-version: "3.9"
-
 services:
+
+  app:
+
+    image: url-shortener:local
+
+    container_name: url-shortener-app
+
+    ports:
+      - "8080:8080"
+
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+
+      DB_URL: jdbc:postgresql://postgres:5432/url_shortener
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+
+      ADMIN_USERNAME: admin
+      ADMIN_PASSWORD: change-me
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+      redis:
+        condition: service_healthy
+
+    restart: unless-stopped
 
   postgres:
 
-    image: postgres:latest
+    image: postgres:17.6
 
     container_name: url-postgres
 
@@ -29,7 +58,7 @@ services:
 
   redis:
 
-    image: redis:latest
+    image: redis:8.4.0
 
     container_name: url-redis
 
