@@ -13,14 +13,22 @@ spring:
 
     show-sql: false
 
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+
   flyway:
     enabled: true
+    locations: classpath:db/migration
 
   data:
     redis:
       host: ${REDIS_HOST}
       port: ${REDIS_PORT}
+      timeout: 2s
 
 logging:
   level:
     root: WARN
+    io.github.sintu7781.urlshortener: INFO
