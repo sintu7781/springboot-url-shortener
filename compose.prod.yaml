@@ -1,7 +1,9 @@
 services:
 
   app:
-    image: url-shortener:local
+    image: ${APP_IMAGE}
+
+    pull_policy: always
 
     ports:
       - "8080:8080"
@@ -13,7 +15,7 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
 
-      JAVA_TOOL_OPYIONS: "-XX:MaxRAMPercentage=70 -XX:InitialRAMPercentage=25"
+      JAVA_TOOL_OPTIONS: "-XX:MaxRAMPercentage=70 -XX:InitialRAMPercentage=25"
 
       DB_URL: jdbc:postgresql://postgres:5432/url_shortener
       DB_USERNAME: ${POSTGRES_USER}
