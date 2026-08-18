@@ -2,22 +2,63 @@ spring:
   application:
     name: url-shortener
 
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+
   profiles:
     active: dev
 
+  datasource:
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 3000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
 server:
   port: 8080
+  forward-headers-strategy: framework
+
+rate-limit:
+  redirect:
+    max-requests: 1000
+    window-seconds: 60
+
+analytics:
+  retention:
+    click-days: 90
+    cleanup-batch-size: 10000
+    cleanup-interval-ms: 3600000
+
+  click-event-outbox:
+    recovery-interval-ms: 30000
 
 management:
   endpoints:
     web:
       exposure:
-        include: health, info, metrics
+        include:
+          - health
+          - info
+          - metrics
 
   endpoint:
     health:
       show-details: always
+      probes:
+        enabled: true
 
 logging:
   level:
     root: INFO
+
+app:
+  security:
+    admin:
+      username: ${ADMIN_USERNAME:admin}
+      password: ${ADMIN_PASSWORD:change-me}
+  instance-id: ${APP_INSTANCE_ID:local}
+
+#snowflake:
+#  worker-id: ${SNOWFLAKE_WORKER_ID:1}
